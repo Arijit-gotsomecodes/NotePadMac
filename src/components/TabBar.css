@@ -2,27 +2,12 @@
   display: flex;
   align-items: stretch;
   background: var(--bg-tab-bar);
-  height: 42px;
-  min-height: 42px;
+  height: 40px;
+  min-height: 40px;
   user-select: none;
   -webkit-app-region: drag;
-  padding-left: 0;
-}
-
-.app-branding {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 12px;
+  padding-left: 78px;
   padding-right: 8px;
-  height: 100%;
-}
-
-.app-logo {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .tab-list {
@@ -30,7 +15,6 @@
   flex: 1;
   overflow-x: auto;
   overflow-y: hidden;
-  -webkit-app-region: no-drag;
   gap: 2px;
   padding: 6px 4px 0;
   align-items: stretch;
@@ -138,10 +122,18 @@
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.15s ease;
+  -webkit-app-region: no-drag;
 }
 
 .tab-add:hover,
 .settings-btn:hover {
   background: var(--bg-tab-hover);
   color: var(--text-primary);
+}
+
+.tab-drag-spacer {
+  flex: 1;
+  height: 100%;
+  min-width: 30px;
+  -webkit-app-region: drag;
 }

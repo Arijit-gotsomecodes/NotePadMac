@@ -135,9 +135,9 @@ export const Settings: React.FC = () => {
                 {/* About / Credits */}
                 <div className="settings-footer">
                     <div className="settings-about">
-                        <img src="/logo.svg" alt="NotepadMac" className="settings-app-icon" />
-                        <div className="settings-app-info">
-                            <span className="settings-app-name">NotepadMac</span>
+                        <img src="/logo.svg" alt="Notepad" className="settings-app-icon" />
+                        <div className="settings-about-text">
+                            <span className="settings-app-name">Notepad</span>
                             <span className="settings-app-version">Version 1.0.4</span>
                         </div>
                     </div>

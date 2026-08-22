@@ -69,10 +69,7 @@ export const TabBar: React.FC = () => {
 
     return (
         <>
-            <div className="tab-bar">
-                <div className="app-branding">
-                    <img src="/logo.svg" alt="Notepad" className="app-logo" />
-                </div>
+            <div className="tab-bar" data-tauri-drag-region>
                 <div className="tab-list" ref={tabBarRef}>
                     {tabs.map((tab) => (
                         <div
@@ -103,6 +100,7 @@ export const TabBar: React.FC = () => {
                             <line x1="5" y1="12" x2="19" y2="12"></line>
                         </svg>
                     </button>
+                    <div className="tab-drag-spacer" data-tauri-drag-region />
                 </div>
 
                 <div className="tab-actions">

@@ -1,4 +1,6 @@
 import { useEffect } from 'react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { TabBar } from './components/TabBar';
 import { MenuBar } from './components/MenuBar';
 import { Editor } from './components/Editor';
@@ -19,6 +21,29 @@ function App() {
   useEffect(() => {
     loadSession();
   }, [loadSession]);
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    getCurrentWindow()
+      .onCloseRequested(async (event) => {
+        const dirtyTabs = useEditorStore.getState().tabs.filter((t) => t.isDirty);
+        if (dirtyTabs.length > 0) {
+          const discard = await ask(
+            `You have unsaved changes in "${dirtyTabs[0].title}". Close without saving?`,
+            {
+              title: "Notepad",
+              kind: "warning",
+            }
+          );
+          if (!discard) {
+            event.preventDefault();
+          }
+        }
+      })
+      .then((u) => (unlisten = u))
+      .catch((err) => console.error("Failed to install close guard:", err));
+    return () => unlisten?.();
+  }, []);
 
   return (
     <div className="app">
