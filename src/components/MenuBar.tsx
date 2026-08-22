@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useFileOperations } from '../hooks/useFileOperations';
@@ -179,7 +180,16 @@ export const MenuBar: React.FC = () => {
     ];
 
     return (
-        <div className="menu-bar" ref={menuBarRef}>
+        <div
+            className="menu-bar"
+            ref={menuBarRef}
+            data-tauri-drag-region
+            onMouseDown={(e) => {
+                if (e.buttons === 1 && !(e.target as HTMLElement).closest('.menu-item-wrapper, .menu-btn, .menu-dropdown, button')) {
+                    getCurrentWindow().startDragging();
+                }
+            }}
+        >
             {menus.map((menu) => (
                 <div className="menu-container" key={menu.id}>
                     <button
