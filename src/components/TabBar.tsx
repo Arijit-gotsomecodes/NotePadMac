@@ -344,18 +344,19 @@ export const TabBar: React.FC = () => {
             const pointerDelta = moveEvent.clientX - startX;
 
             // Two separate thresholds to prevent boundary oscillation (hysteresis):
-            // - Enter floating: cross vertical threshold or drag past left/right tab bar edges with clear intention
+            // - Enter floating: cross vertical threshold or drag past left/right tab list boundaries (past the + button or traffic lights)
             // - Exit floating: smoothly snaps back once cursor is within generous tab bar area
-            const ENTER_THRESHOLD_TOP = 22;
-            const ENTER_THRESHOLD_BOTTOM = 28;
-            const ENTER_THRESHOLD_HORIZ = 45;
+            const ENTER_THRESHOLD_TOP = 20;
+            const ENTER_THRESHOLD_BOTTOM = 25;
+            const ENTER_THRESHOLD_HORIZ_LEFT = 10;
+            const ENTER_THRESHOLD_HORIZ_RIGHT = 12;
 
             const isOutsideV = moveEvent.clientY < listRect.top - ENTER_THRESHOLD_TOP || moveEvent.clientY > listRect.bottom + ENTER_THRESHOLD_BOTTOM;
-            const isOutsideH = moveEvent.clientX < listRect.left - ENTER_THRESHOLD_HORIZ || moveEvent.clientX > listRect.right + ENTER_THRESHOLD_HORIZ;
+            const isOutsideH = moveEvent.clientX < listRect.left - ENTER_THRESHOLD_HORIZ_LEFT || moveEvent.clientX > listRect.right + ENTER_THRESHOLD_HORIZ_RIGHT;
             const enterFloat = isOutsideV || isOutsideH;
 
             const isInsideV = moveEvent.clientY >= listRect.top - 8 && moveEvent.clientY <= listRect.bottom + 12;
-            const isInsideH = moveEvent.clientX >= listRect.left - 20 && moveEvent.clientX <= listRect.right + 20;
+            const isInsideH = moveEvent.clientX >= listRect.left - 5 && moveEvent.clientX <= listRect.right + 15;
             const exitFloat = isInsideV && isInsideH;
 
             if (enterFloat && !isFloatingRef.current) {
