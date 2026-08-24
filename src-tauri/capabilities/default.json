@@ -7,6 +7,9 @@
   ],
   "permissions": [
     "core:default",
+    "core:window:allow-start-dragging",
+    "core:window:allow-destroy",
+    "core:window:allow-close",
     "opener:default",
     "dialog:default",
     "fs:default",

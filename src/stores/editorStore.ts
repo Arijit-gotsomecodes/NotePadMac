@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 export interface Tab {
   id: string;
@@ -62,9 +63,11 @@ function createDefaultTab(overrides?: Partial<Tab>): Tab {
   };
 }
 
+const initialTab = createDefaultTab();
+
 export const useEditorStore = create<EditorState>((set, get) => ({
-  tabs: [createDefaultTab()],
-  activeTabId: '',
+  tabs: [initialTab],
+  activeTabId: initialTab.id,
   sessionSaveTimer: null,
 
   addTab: (overrides) => {
@@ -84,9 +87,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newTabs = state.tabs.filter((t) => t.id !== id);
 
     if (newTabs.length === 0) {
-      // Always keep at least one tab
-      const fresh = createDefaultTab();
-      set({ tabs: [fresh], activeTabId: fresh.id });
+      // Last tab closed -> quit the app
+      invoke('exit_app');
+      return;
     } else {
       let newActive = state.activeTabId;
       if (state.activeTabId === id) {
@@ -106,9 +109,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   updateContent: (id, content) => {
     set((state) => ({
-      tabs: state.tabs.map((t) =>
-        t.id === id ? { ...t, content, isDirty: true } : t
-      ),
+      tabs: state.tabs.map((t) => {
+        if (t.id !== id) return t;
+        // For untitled tabs (no filePath), reset dirty when content is empty
+        const isDirty = !t.filePath && content === '' ? false : true;
+        return { ...t, content, isDirty };
+      }),
     }));
     get().saveSession();
   },

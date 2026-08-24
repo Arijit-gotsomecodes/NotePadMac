@@ -2,9 +2,9 @@
     display: flex;
     align-items: center;
     background: var(--bg-menu);
-    height: 32px;
-    min-height: 32px;
-    padding: 0 6px;
+    height: 35px;
+    min-height: 35px;
+    padding: 0 10px;
     user-select: none;
 }
 
@@ -15,12 +15,12 @@
 .menu-trigger {
     display: flex;
     align-items: center;
-    height: 26px;
+    height: 28px;
     padding: 0 10px;
     border: none;
     background: none;
     color: var(--text-primary);
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 450;
     cursor: pointer;
     border-radius: 6px;

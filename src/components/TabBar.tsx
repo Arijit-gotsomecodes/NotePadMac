@@ -1,5 +1,4 @@
 import React, { useRef, useEffect } from 'react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
 import { useFileOperations } from '../hooks/useFileOperations';
 import { useEditorStore } from '../stores/editorStore';
@@ -29,7 +28,10 @@ export const TabBar: React.FC = () => {
         const tab = tabs.find(t => t.id === id);
         if (!tab) return;
 
-        if (tab.isDirty) {
+        // If this is an untitled tab with no content, just close it directly
+        const isEmptyUntitled = !tab.filePath && tab.content.trim() === '';
+
+        if (tab.isDirty && !isEmptyUntitled) {
             const action = await invoke<string>('prompt_save_dialog', {
                 documentName: tab.title || 'Untitled',
             });
@@ -48,16 +50,16 @@ export const TabBar: React.FC = () => {
         }
     };
 
-    const handleDragStart = (e: React.MouseEvent) => {
-        if (e.buttons === 1 && !(e.target as HTMLElement).closest('.tab, button, input, svg')) {
-            getCurrentWindow().startDragging();
-        }
-    };
-
     return (
-        <div className="tab-bar" data-tauri-drag-region onMouseDown={handleDragStart}>
-            <div className="tab-list" ref={tabBarRef} onMouseDown={handleDragStart}>
+        // data-tauri-drag-region on the outermost container only.
+        // Tauri's WKWebView subclass intercepts mousedown at OS level for this attr,
+        // which is the ONLY reliable method on macOS regardless of focus state.
+        <div className="tab-bar" data-tauri-drag-region>
+            {/* tab-list: drag region on the list itself, but NOT on child .tab divs */}
+            <div className="tab-list" ref={tabBarRef} data-tauri-drag-region>
                 {tabs.map((tab) => (
+                    // Individual tabs do NOT have data-tauri-drag-region so
+                    // onClick still fires normally for tab switching.
                     <div
                         key={tab.id}
                         className={`tab ${tab.id === activeTabId ? 'active' : ''}`}
@@ -65,31 +67,34 @@ export const TabBar: React.FC = () => {
                         onMouseDown={(e) => handleMiddleClick(e, tab.id)}
                     >
                         <span className="tab-title">
-                            {tab.isDirty && <span className="dirty-dot">●</span>}
                             {tab.title}
                         </span>
                         <button
-                            className="tab-close"
+                            className={`tab-close ${tab.isDirty ? 'is-dirty' : ''}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleStartClose(tab.id);
                             }}
                             title="Close"
                         >
-                            ×
+                            {tab.isDirty && <span className="tab-indicator-dirty" />}
+                            <span className="tab-indicator-close">×</span>
                         </button>
                     </div>
                 ))}
+                {/* The add button is NOT a drag region */}
                 <button className="tab-add" onClick={() => addTab()} title="New Tab">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                 </button>
-                <div className="tab-drag-spacer" data-tauri-drag-region onMouseDown={handleDragStart} />
+                {/* Spacer is pure drag area */}
+                <div className="tab-drag-spacer" data-tauri-drag-region />
             </div>
 
-            <div className="tab-actions">
+            {/* Actions container: drag region, buttons inside are not */}
+            <div className="tab-actions" data-tauri-drag-region>
                 <button className="settings-btn" onClick={toggleSettings} title="Settings">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>

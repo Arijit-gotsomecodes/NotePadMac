@@ -2,11 +2,10 @@
   display: flex;
   align-items: stretch;
   background: var(--bg-tab-bar);
-  height: 40px;
-  min-height: 40px;
+  height: 42px;
+  min-height: 42px;
   user-select: none;
-  -webkit-app-region: drag;
-  padding-left: 78px;
+  padding-left: 92px;
   padding-right: 8px;
 }
 
@@ -15,8 +14,8 @@
   flex: 1;
   overflow-x: auto;
   overflow-y: hidden;
-  gap: 2px;
-  padding: 6px 4px 0;
+  gap: 6px;
+  padding: 6px 8px 0 8px;
   align-items: stretch;
 }
 
@@ -29,15 +28,14 @@
   align-items: center;
   gap: 8px;
   padding: 0 14px;
-  min-width: 100px;
-  max-width: 200px;
+  min-width: 120px;
+  max-width: 220px;
   height: 100%;
   cursor: pointer;
   background: transparent;
   transition: all 0.15s ease;
-  -webkit-app-region: no-drag;
   position: relative;
-  border-radius: 6px 6px 0 0;
+  border-radius: 10px 10px 0 0;
   flex-shrink: 0;
 }
 
@@ -47,7 +45,30 @@
 
 .tab.active {
   background: var(--bg-tab-active);
-  z-index: 1;
+  z-index: 2;
+}
+
+/* Chrome / Edge concave bottom flare curves */
+.tab.active::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle at top left, transparent 8px, var(--bg-tab-active) 8.5px);
+  pointer-events: none;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: -8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle at top right, transparent 8px, var(--bg-tab-active) 8.5px);
+  pointer-events: none;
 }
 
 .tab-title {
@@ -56,21 +77,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12.5px;
-  font-weight: 400;
+  font-weight: 450;
   color: var(--text-secondary);
   letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
 }
 
 .tab.active .tab-title {
   color: var(--text-primary);
   font-weight: 500;
-}
-
-.dirty-dot {
-  color: var(--accent-color);
-  margin-right: 4px;
-  font-size: 8px;
-  line-height: 1;
 }
 
 .tab-close {
@@ -81,23 +97,50 @@
   height: 18px;
   border: none;
   background: none;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1;
   cursor: pointer;
   border-radius: 50%;
   padding: 0;
-  opacity: 0;
-  transition: all 0.15s ease;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
 }
 
-.tab:hover .tab-close,
-.tab.active .tab-close {
-  opacity: 1;
+/* Close X Icon: hidden by default on unhovered tabs */
+.tab-close .tab-indicator-close {
+  display: none;
+  font-size: 14px;
+  line-height: 1;
+  color: var(--text-secondary);
+}
+
+/* Dirty Dot: shown ONLY when tab is dirty and not hovered */
+.tab-close .tab-indicator-dirty {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  pointer-events: none;
+}
+
+/* When hovering the tab or the button: HIDE dirty dot, SHOW close X icon */
+.tab:hover .tab-close .tab-indicator-dirty,
+.tab-close:hover .tab-indicator-dirty {
+  display: none !important;
+}
+
+.tab:hover .tab-close .tab-indicator-close,
+.tab.active:hover .tab-close .tab-indicator-close,
+.tab-close:hover .tab-indicator-close {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-close:hover {
   background: var(--bg-hover);
+}
+
+.tab-close:hover .tab-indicator-close {
   color: var(--text-primary);
 }
 
@@ -105,8 +148,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 0 8px;
-  -webkit-app-region: no-drag;
+  padding: 8px 4px 0;
 }
 
 .tab-add,
@@ -114,15 +156,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: none;
   color: var(--text-secondary);
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.15s ease;
-  -webkit-app-region: no-drag;
+  align-self: center;
 }
 
 .tab-add:hover,
@@ -135,5 +177,4 @@
   flex: 1;
   height: 100%;
   min-width: 30px;
-  -webkit-app-region: drag;
 }

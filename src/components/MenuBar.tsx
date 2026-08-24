@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useFileOperations } from '../hooks/useFileOperations';
@@ -180,15 +179,13 @@ export const MenuBar: React.FC = () => {
     ];
 
     return (
+        // data-tauri-drag-region on menu-bar container allows window drag
+        // from empty space. The menu buttons inside do NOT have this attr
+        // so clicks on them still work normally.
         <div
             className="menu-bar"
             ref={menuBarRef}
             data-tauri-drag-region
-            onMouseDown={(e) => {
-                if (e.buttons === 1 && !(e.target as HTMLElement).closest('.menu-item-wrapper, .menu-btn, .menu-dropdown, button')) {
-                    getCurrentWindow().startDragging();
-                }
-            }}
         >
             {menus.map((menu) => (
                 <div className="menu-container" key={menu.id}>
