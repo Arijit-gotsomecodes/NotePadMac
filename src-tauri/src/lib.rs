@@ -392,8 +392,8 @@ fn try_merge_window(
                     "tab_json": tab_json,
                     "local_x": local_x,
                 });
-                app.emit("highlight-drop-target", serde_json::json!({ "target_window": null })).ok();
                 win.emit("import-tab", payload).ok();
+                app.emit("highlight-drop-target", serde_json::json!({ "target_window": null })).ok();
                 src_win.destroy().ok();
                 return Ok(true);
             }

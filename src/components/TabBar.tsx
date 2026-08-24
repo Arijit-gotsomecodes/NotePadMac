@@ -101,29 +101,28 @@ export const TabBar: React.FC = () => {
                 justImportedIdRef.current = tab.id;
                 setJustImportedId(tab.id);
 
-                // Calculate insert index from local_x (cursor position relative to this window)
-                let insertIdx: number | null = null;
-                if (localX !== null) {
-                    const currentTabs = useEditorStore.getState().tabs;
-                    insertIdx = currentTabs.length; // default: append at end
+                const currentTabs = useEditorStore.getState().tabs;
+                let finalIdx = currentTabs.length;
+
+                // 1. If crossDropIndexRef was set while hovering (where the user saw the placeholder), use it directly
+                if (crossDropIndexRef.current !== null && crossDropIndexRef.current !== undefined) {
+                    finalIdx = crossDropIndexRef.current;
+                } else if (localX !== null) {
+                    // 2. Otherwise calculate insert index from local_x
                     for (let i = 0; i < currentTabs.length; i++) {
                         const el = tabElementsRef.current.get(currentTabs[i].id);
                         if (el) {
                             const rect = el.getBoundingClientRect();
                             const midX = rect.left + rect.width / 2;
                             if (localX < midX) {
-                                insertIdx = i;
+                                finalIdx = i;
                                 break;
                             }
                         }
                     }
                 }
 
-                if (insertIdx !== null) {
-                    useEditorStore.getState().insertTabAtIndex(tab, insertIdx);
-                } else {
-                    useEditorStore.getState().addMultipleTabs([tab]);
-                }
+                useEditorStore.getState().insertTabAtIndex(tab, finalIdx);
                 setCrossDropIndex(null);
                 crossDropIndexRef.current = null;
                 isCrossDropTargetRef.current = false;
@@ -280,7 +279,6 @@ export const TabBar: React.FC = () => {
             const onSingleTabPointerUp = async (upEvent?: PointerEvent) => {
                 window.removeEventListener('pointerup', onSingleTabPointerUp);
                 unlistenMoved?.();
-                emit('highlight-drop-target', { target_window: null });
                 if (currentTab) {
                     try {
                         const merged = await invoke<boolean>('try_merge_window', {
@@ -290,13 +288,16 @@ export const TabBar: React.FC = () => {
                             screenY: upEvent?.screenY ?? null,
                         });
                         if (!merged) {
+                            emit('highlight-drop-target', { target_window: null });
                             setIsWindowDimmed(false);
                         }
                     } catch (err) {
+                        emit('highlight-drop-target', { target_window: null });
                         setIsWindowDimmed(false);
                         console.error('try_merge_window error:', err);
                     }
                 } else {
+                    emit('highlight-drop-target', { target_window: null });
                     setIsWindowDimmed(false);
                 }
             };
