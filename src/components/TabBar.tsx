@@ -470,11 +470,11 @@ export const TabBar: React.FC = () => {
             emit('highlight-drop-target', { targetWindow: null });
 
             // Trigger finish_tab_drag if:
-            //  1. Dragging outside own tab bar (vertical), OR
-            //  2. A cross-window placeholder is actively showing (isCrossDropTargetRef - use ref to avoid stale closure)
+            //  1. Dragging outside own tab bar (vertical far away), OR
+            //  2. Tab is floating (pulled out of tab bar) — Rust backend handles hit detection
+            //     against all other windows, so we always delegate to it.
             const isFarAway = upEvent.clientY < listRect.top - 20 || upEvent.clientY > listRect.bottom + 35;
-            const hasCrossTarget = isCrossDropTargetRef.current || crossDropIndexRef.current !== null;
-            if (isDragging && (isFarAway || (isFloatingRef.current && hasCrossTarget))) {
+            if (isDragging && (isFarAway || isFloatingRef.current)) {
                 const currentTab = useEditorStore.getState().tabs.find(t => t.id === id);
                 const currentTabs = useEditorStore.getState().tabs;
                 const allowDetach = currentTabs.length > 1;
