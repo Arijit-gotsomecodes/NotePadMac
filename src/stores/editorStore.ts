@@ -1,6 +1,5 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
-import { getCurrentWindow } from '@tauri-apps/api/window';
 
 export interface Tab {
   id: string;
