@@ -465,8 +465,12 @@ export const TabBar: React.FC = () => {
             invoke('hide_drag_ghost').catch(() => {});
             emit('highlight-drop-target', { targetWindow: null });
 
+            // Trigger finish_tab_drag if:
+            //  1. Dragging outside own tab bar (vertical), OR
+            //  2. A cross-window placeholder is actively showing (isCrossDropTarget)
             const isFarAway = upEvent.clientY < listRect.top - 20 || upEvent.clientY > listRect.bottom + 35;
-            if (isDragging && isFarAway) {
+            const hasCrossTarget = crossDropIndexRef.current !== null || isCrossDropTarget;
+            if (isDragging && (isFarAway || (isFloatingRef.current && hasCrossTarget))) {
                 const currentTab = useEditorStore.getState().tabs.find(t => t.id === id);
                 const currentTabs = useEditorStore.getState().tabs;
                 const allowDetach = currentTabs.length > 1;
