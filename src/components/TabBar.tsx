@@ -343,20 +343,24 @@ export const TabBar: React.FC = () => {
 
             const pointerDelta = moveEvent.clientX - startX;
 
-            // Two separate thresholds to prevent boundary oscillation (hysteresis):
-            // - Enter floating: cross vertical threshold or drag past left/right tab list boundaries (past the + button or traffic lights)
-            // - Exit floating: smoothly snaps back once cursor is within generous tab bar area
-            const ENTER_THRESHOLD_TOP = 20;
-            const ENTER_THRESHOLD_BOTTOM = 25;
-            const ENTER_THRESHOLD_HORIZ_LEFT = 10;
-            const ENTER_THRESHOLD_HORIZ_RIGHT = 12;
+            // Dynamic adaptive thresholds:
+            // 1. When user intends to pull tab out (small horizontal move), vertical threshold is very light and snappy (~10-14px).
+            // 2. When user is actively dragging horizontally across tabs to reorder, vertical threshold scales up (~30-36px) to avoid accidental detaching.
+            // 3. Horizontal threshold is light and responsive (~6-8px past the boundaries).
+            const horizDistance = Math.abs(pointerDelta);
+            const horizIntentRatio = Math.min(1, Math.max(0, (horizDistance - 8) / 32)); // 0 (pull-out) to 1 (full reordering)
+
+            const ENTER_THRESHOLD_TOP = 10 + horizIntentRatio * 20; // 10px -> 30px
+            const ENTER_THRESHOLD_BOTTOM = 14 + horizIntentRatio * 22; // 14px -> 36px
+            const ENTER_THRESHOLD_HORIZ_LEFT = 6;
+            const ENTER_THRESHOLD_HORIZ_RIGHT = 8;
 
             const isOutsideV = moveEvent.clientY < listRect.top - ENTER_THRESHOLD_TOP || moveEvent.clientY > listRect.bottom + ENTER_THRESHOLD_BOTTOM;
             const isOutsideH = moveEvent.clientX < listRect.left - ENTER_THRESHOLD_HORIZ_LEFT || moveEvent.clientX > listRect.right + ENTER_THRESHOLD_HORIZ_RIGHT;
             const enterFloat = isOutsideV || isOutsideH;
 
-            const isInsideV = moveEvent.clientY >= listRect.top - 8 && moveEvent.clientY <= listRect.bottom + 12;
-            const isInsideH = moveEvent.clientX >= listRect.left - 5 && moveEvent.clientX <= listRect.right + 15;
+            const isInsideV = moveEvent.clientY >= listRect.top - 6 && moveEvent.clientY <= listRect.bottom + 10;
+            const isInsideH = moveEvent.clientX >= listRect.left - 4 && moveEvent.clientX <= listRect.right + 12;
             const exitFloat = isInsideV && isInsideH;
 
             if (enterFloat && !isFloatingRef.current) {
