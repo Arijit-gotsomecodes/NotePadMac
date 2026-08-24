@@ -54,8 +54,15 @@ fn prompt_save_dialog(
 }
 
 #[tauri::command]
-fn exit_app(app: tauri::AppHandle) {
-    app.exit(0);
+fn exit_app(window: tauri::Window) {
+    use tauri::Manager;
+    let app = window.app_handle();
+    let remaining: Vec<_> = app.webview_windows().into_iter().filter(|(k, _)| k != "tab-drag-ghost").collect();
+    if remaining.len() <= 1 {
+        app.exit(0);
+    } else {
+        let _ = window.destroy();
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -89,8 +96,21 @@ fn adjust_traffic_lights(window: &tauri::Window) {
     }
 }
 
+use std::sync::Mutex;
+use std::collections::HashMap;
+
+static PENDING_OPEN_FILES: Mutex<Vec<String>> = Mutex::new(Vec::new());
+static PENDING_WINDOW_TABS: Mutex<Option<HashMap<String, String>>> = Mutex::new(None);
+
 #[tauri::command]
 fn get_cli_file() -> Option<String> {
+    // 1. Check if any file was opened via macOS RunEvent::Opened
+    if let Ok(mut pending) = PENDING_OPEN_FILES.lock() {
+        if let Some(file) = pending.pop() {
+            return Some(file);
+        }
+    }
+    // 2. Check CLI args
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 {
         for arg in &args[1..] {
@@ -100,6 +120,196 @@ fn get_cli_file() -> Option<String> {
         }
     }
     None
+}
+
+#[tauri::command]
+fn detach_tab(app: tauri::AppHandle, tab_json: String, x: Option<f64>, y: Option<f64>) -> Result<(), String> {
+    let win_id = format!("win-{}", std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis());
+    
+    if let Ok(mut map_lock) = PENDING_WINDOW_TABS.lock() {
+        if map_lock.is_none() {
+            *map_lock = Some(HashMap::new());
+        }
+        if let Some(ref mut map) = *map_lock {
+            map.insert(win_id.clone(), tab_json);
+        }
+    }
+
+    let mut builder = tauri::WebviewWindowBuilder::new(&app, &win_id, tauri::WebviewUrl::App("index.html".into()))
+        .title("Notepad")
+        .inner_size(900.0, 650.0)
+        .min_inner_size(400.0, 300.0)
+        .title_bar_style(tauri::TitleBarStyle::Overlay)
+        .hidden_title(true)
+        .transparent(true)
+        .visible(false);
+
+    if let (Some(px), Some(py)) = (x, y) {
+        builder = builder.position(px - 150.0, py - 20.0);
+    }
+
+    let win = builder
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    #[cfg(target_os = "macos")]
+    {
+        let w = win.as_ref().window().clone();
+        win.run_on_main_thread(move || {
+            adjust_traffic_lights(&w);
+        }).ok();
+    }
+    
+    Ok(())
+}
+
+#[tauri::command]
+fn get_window_tab(window: tauri::Window) -> Option<String> {
+    let label = window.label();
+    if let Ok(mut map_lock) = PENDING_WINDOW_TABS.lock() {
+        if let Some(ref mut map) = *map_lock {
+            return map.remove(label);
+        }
+    }
+    None
+}
+
+#[tauri::command]
+fn show_drag_ghost(app: tauri::AppHandle, title: String, x: f64, y: f64) -> Result<(), String> {
+    use tauri::{Manager, Emitter, Listener};
+    if let Some(ghost) = app.get_webview_window("tab-drag-ghost") {
+        ghost.set_position(tauri::LogicalPosition::new(x - 90.0, y - 18.0)).ok();
+        ghost.show().ok();
+        ghost.emit("update-ghost-title", title).ok();
+    } else {
+        let ghost = tauri::WebviewWindowBuilder::new(&app, "tab-drag-ghost", tauri::WebviewUrl::App("index.html?ghost=true".into()))
+            .title("Ghost")
+            .inner_size(190.0, 42.0)
+            .decorations(false)
+            .transparent(true)
+            .always_on_top(true)
+            .shadow(false)
+            .skip_taskbar(true)
+            .position(x - 90.0, y - 18.0)
+            .build()
+            .map_err(|e| e.to_string())?;
+
+        let app_handle = app.clone();
+        let t_clone = title.clone();
+        ghost.once("ghost-ready", move |_| {
+            if let Some(g) = app_handle.get_webview_window("tab-drag-ghost") {
+                g.emit("update-ghost-title", t_clone).ok();
+            }
+        });
+
+        #[cfg(target_os = "macos")]
+        {
+            use objc2::msg_send;
+            if let Ok(ns_ptr) = ghost.as_ref().window().ns_window() {
+                let ns_win: *mut objc2::runtime::AnyObject = ns_ptr as _;
+                unsafe {
+                    let _: () = msg_send![ns_win, setIgnoresMouseEvents: true];
+                    let _: () = msg_send![ns_win, setHasShadow: false];
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn move_drag_ghost(app: tauri::AppHandle, x: f64, y: f64) {
+    use tauri::Manager;
+    if let Some(ghost) = app.get_webview_window("tab-drag-ghost") {
+        ghost.set_position(tauri::LogicalPosition::new(x - 90.0, y - 18.0)).ok();
+    }
+}
+
+#[tauri::command]
+fn hide_drag_ghost(app: tauri::AppHandle) {
+    use tauri::Manager;
+    if let Some(ghost) = app.get_webview_window("tab-drag-ghost") {
+        ghost.hide().ok();
+    }
+}
+
+#[tauri::command]
+fn check_drag_hover(app: tauri::AppHandle, source_window: String, screen_x: f64, screen_y: f64) -> Option<String> {
+    use tauri::Manager;
+    for (label, win) in app.webview_windows() {
+        if label == source_window || label == "tab-drag-ghost" {
+            continue;
+        }
+        if let (Ok(pos), Ok(size), Ok(scale)) = (win.outer_position(), win.outer_size(), win.scale_factor()) {
+            let logical_x = (pos.x as f64) / scale;
+            let logical_y = (pos.y as f64) / scale;
+            let logical_w = (size.width as f64) / scale;
+
+            if screen_x >= logical_x && screen_x <= (logical_x + logical_w) && screen_y >= (logical_y - 15.0) && screen_y <= (logical_y + 65.0) {
+                return Some(label);
+            }
+        }
+    }
+    None
+}
+
+#[tauri::command]
+fn finish_tab_drag(
+    app: tauri::AppHandle,
+    source_window: String,
+    tab_json: String,
+    screen_x: f64,
+    screen_y: f64,
+    allow_detach: bool,
+) -> Result<String, String> {
+    use tauri::{Manager, Emitter};
+
+    if let Some(ghost) = app.get_webview_window("tab-drag-ghost") {
+        ghost.hide().ok();
+    }
+
+    // Check if dropped into another window's tab bar
+    for (label, win) in app.webview_windows() {
+        if label == source_window || label == "tab-drag-ghost" {
+            continue;
+        }
+        if let (Ok(pos), Ok(size), Ok(scale)) = (win.outer_position(), win.outer_size(), win.scale_factor()) {
+            let logical_x = (pos.x as f64) / scale;
+            let logical_y = (pos.y as f64) / scale;
+            let logical_w = (size.width as f64) / scale;
+
+            if screen_x >= logical_x && screen_x <= (logical_x + logical_w) && screen_y >= (logical_y - 15.0) && screen_y <= (logical_y + 75.0) {
+                win.emit("import-tab", tab_json.clone()).ok();
+                return Ok("merged".to_string());
+            }
+        }
+    }
+
+    // If allowed to detach (more than 1 tab), spawn new window
+    if allow_detach {
+        detach_tab(app, tab_json, Some(screen_x), Some(screen_y))?;
+        return Ok("detached".to_string());
+    }
+
+    Ok("stay".to_string())
+}
+
+#[tauri::command]
+fn merge_all_windows() {
+    #[cfg(target_os = "macos")]
+    {
+        use objc2::msg_send;
+        unsafe {
+            let ns_app: *mut objc2::runtime::AnyObject = msg_send![objc2::class!(NSApplication), sharedApplication];
+            if !ns_app.is_null() {
+                let key_win: *mut objc2::runtime::AnyObject = msg_send![ns_app, keyWindow];
+                if !key_win.is_null() {
+                    let nil_obj: *mut objc2::runtime::AnyObject = std::ptr::null_mut();
+                    let _: () = msg_send![key_win, mergeAllWindows: nil_obj];
+                }
+            }
+        }
+    }
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -118,6 +328,14 @@ pub fn run() {
             prompt_save_dialog,
             exit_app,
             get_cli_file,
+            detach_tab,
+            get_window_tab,
+            show_drag_ghost,
+            move_drag_ghost,
+            hide_drag_ghost,
+            check_drag_hover,
+            finish_tab_drag,
+            merge_all_windows,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -143,8 +361,11 @@ pub fn run() {
                 }
             }
             if let tauri::WindowEvent::Destroyed = event {
-                if window.label() == "main" {
-                    window.app_handle().exit(0);
+                use tauri::Manager;
+                let app = window.app_handle();
+                let remaining: Vec<_> = app.webview_windows().into_iter().filter(|(k, _)| k != "tab-drag-ghost").collect();
+                if remaining.is_empty() {
+                    app.exit(0);
                 }
             }
         })
@@ -157,7 +378,11 @@ pub fn run() {
             for url in urls {
                 if let Ok(file_path) = url.to_file_path() {
                     if let Some(path_str) = file_path.to_str() {
-                        let _ = app_handle.emit("open-file-path", path_str.to_string());
+                        let path_string = path_str.to_string();
+                        if let Ok(mut pending) = PENDING_OPEN_FILES.lock() {
+                            pending.push(path_string.clone());
+                        }
+                        let _ = app_handle.emit("open-file-path", path_string);
                     }
                 }
             }
