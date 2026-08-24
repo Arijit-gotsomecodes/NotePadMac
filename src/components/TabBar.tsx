@@ -80,6 +80,7 @@ export const TabBar: React.FC = () => {
                             {tab.isDirty && <span className="tab-indicator-dirty" />}
                             <span className="tab-indicator-close">×</span>
                         </button>
+                        <div className="tab-divider" />
                     </div>
                 ))}
                 {/* The add button is NOT a drag region */}
