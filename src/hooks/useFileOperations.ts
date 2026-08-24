@@ -73,24 +73,14 @@ export async function openFilePath(path: string): Promise<void> {
         const result = await invoke<{ content: string; encoding: string; line_ending: string }>('read_file', { path });
         const fileName = path.split('/').pop() || path.split('\\').pop() || 'Untitled';
         
-        // 2. If the current active tab is an empty untitled tab and not modified, replace it
-        const activeTab = editorStore.getActiveTab();
-        if (activeTab && !activeTab.filePath && activeTab.content === '' && !activeTab.isDirty) {
-            editorStore.setFilePath(activeTab.id, path, fileName);
-            editorStore.updateContent(activeTab.id, result.content);
-            editorStore.setEncoding(activeTab.id, result.encoding);
-            editorStore.setLineEnding(activeTab.id, result.line_ending);
-            editorStore.setClean(activeTab.id);
-        } else {
-            editorStore.addTab({
-                title: fileName,
-                filePath: path,
-                content: result.content,
-                encoding: result.encoding,
-                lineEnding: result.line_ending,
-                isDirty: false,
-            });
-        }
+        editorStore.addTab({
+            title: fileName,
+            filePath: path,
+            content: result.content,
+            encoding: result.encoding,
+            lineEnding: result.line_ending,
+            isDirty: false,
+        });
     } catch (err) {
         console.error('Failed to open file from path:', err);
     }
