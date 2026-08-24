@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
+import { getCurrentWindow } from '@tauri-apps/api/window';
+import { emit } from '@tauri-apps/api/event';
 
 export interface Tab {
   id: string;
@@ -23,6 +25,7 @@ interface EditorState {
 
   // Actions
   addTab: (tab?: Partial<Tab>) => void;
+  addMultipleTabs: (newTabs: Tab[]) => void;
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
   updateContent: (id: string, content: string) => void;
@@ -38,6 +41,12 @@ interface EditorState {
   undo: (id: string) => void;
   redo: (id: string) => void;
   pushUndo: (id: string, content: string) => void;
+  detachTab: (id: string, screenX?: number, screenY?: number) => Promise<void>;
+  initDetachedTab: (tab: Tab) => void;
+  duplicateTab: (id: string) => void;
+  closeOtherTabs: (id: string) => void;
+  reorderTabs: (fromIndex: number, toIndex: number) => void;
+  mergeWindows: () => void;
 }
 
 function generateId(): string {
@@ -296,7 +305,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           activeTabId: session.active_tab_id,
         });
       } else {
-        // Initialize with first tab's id
         const state = get();
         if (state.tabs.length > 0 && !state.activeTabId) {
           set({ activeTabId: state.tabs[0].id });
@@ -305,9 +313,101 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     } catch (err) {
       console.error('Failed to load session:', err);
       const state = get();
-      if (state.tabs.length > 0) {
+      if (state.tabs.length > 0 && !state.activeTabId) {
         set({ activeTabId: state.tabs[0].id });
       }
+    }
+  },
+
+  detachTab: async (id, screenX, screenY) => {
+    const state = get();
+    const tab = state.tabs.find((t) => t.id === id);
+    if (!tab) return;
+
+    try {
+      await invoke('detach_tab', { tabJson: JSON.stringify(tab), x: screenX, y: screenY });
+      
+      // If this window only has 1 tab, create a new blank tab
+      if (state.tabs.length === 1) {
+        const freshTab = createDefaultTab();
+        set({ tabs: [freshTab], activeTabId: freshTab.id });
+      } else {
+        const remaining = state.tabs.filter((t) => t.id !== id);
+        let newActive = state.activeTabId;
+        if (state.activeTabId === id) {
+          newActive = remaining[0].id;
+        }
+        set({ tabs: remaining, activeTabId: newActive });
+      }
+      get().saveSession();
+    } catch (err) {
+      console.error('Failed to detach tab:', err);
+    }
+  },
+
+  initDetachedTab: (tab) => {
+    set({ tabs: [tab], activeTabId: tab.id });
+  },
+
+  duplicateTab: (id) => {
+    const tab = get().tabs.find((t) => t.id === id);
+    if (!tab) return;
+    get().addTab({
+      title: `${tab.title} (Copy)`,
+      filePath: null,
+      content: tab.content,
+      encoding: tab.encoding,
+      lineEnding: tab.lineEnding,
+      isDirty: true,
+    });
+  },
+
+  closeOtherTabs: (id) => {
+    const tab = get().tabs.find((t) => t.id === id);
+    if (!tab) return;
+    set({ tabs: [tab], activeTabId: tab.id });
+    get().saveSession();
+  },
+
+  reorderTabs: (fromIndex, toIndex) => {
+    if (fromIndex === toIndex) return;
+    set((state) => {
+      const nextTabs = [...state.tabs];
+      const [movedTab] = nextTabs.splice(fromIndex, 1);
+      if (!movedTab) return state;
+      nextTabs.splice(toIndex, 0, movedTab);
+      return { tabs: nextTabs };
+    });
+    get().saveSession();
+  },
+
+  addMultipleTabs: (newTabs) => {
+    set((state) => {
+      // Filter out duplicate tabs that already exist with the same filePath or id
+      const existingPaths = new Set(state.tabs.map(t => t.filePath).filter(Boolean));
+      const existingIds = new Set(state.tabs.map(t => t.id));
+
+      const filtered = newTabs.filter(t => {
+        if (t.filePath && existingPaths.has(t.filePath)) return false;
+        if (existingIds.has(t.id)) return false;
+        return true;
+      });
+
+      if (filtered.length === 0) return state;
+      return {
+        tabs: [...state.tabs, ...filtered],
+        activeTabId: filtered[filtered.length - 1].id,
+      };
+    });
+    get().saveSession();
+  },
+
+  mergeWindows: async () => {
+    try {
+      const currentWin = getCurrentWindow();
+      await emit('request-merge-tabs', { targetWindow: currentWin.label });
+    } catch (err) {
+      console.error('Failed to request merge:', err);
     }
   },
 }));
