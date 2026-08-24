@@ -121,20 +121,7 @@
   opacity: 0 !important;
 }
 
-@keyframes tab-merge-in {
-  0% {
-    opacity: 0.9;
-    transform: scale(0.98);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 
-.tab.is-just-imported {
-  animation: tab-merge-in 0.12s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-}
 
 @keyframes tab-add-entry {
   0% {
