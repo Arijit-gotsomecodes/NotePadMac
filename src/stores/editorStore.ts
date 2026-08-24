@@ -26,6 +26,7 @@ interface EditorState {
   // Actions
   addTab: (tab?: Partial<Tab>) => void;
   addMultipleTabs: (newTabs: Tab[]) => void;
+  insertTabAtIndex: (tab: Tab, index: number) => void;
   closeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
   updateContent: (id: string, content: string) => void;
@@ -50,7 +51,10 @@ interface EditorState {
 }
 
 function generateId(): string {
-  return Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  return 'tab-' + Math.random().toString(36).substring(2, 11) + '-' + Date.now().toString(36);
 }
 
 function createDefaultTab(overrides?: Partial<Tab>): Tab {
@@ -119,9 +123,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => ({
       tabs: state.tabs.map((t) => {
         if (t.id !== id) return t;
+        // For untitled tabs (no filePath), derive title from first non-empty line of content
+        let title = t.title;
+        if (!t.filePath) {
+          const firstLine = content.trim().split('\n')[0]?.trim();
+          if (firstLine) {
+            title = firstLine.length > 12 ? firstLine.slice(0, 12).trim() + '...' : firstLine;
+          } else {
+            title = 'Untitled';
+          }
+        }
         // For untitled tabs (no filePath), reset dirty when content is empty
         const isDirty = !t.filePath && content === '' ? false : true;
-        return { ...t, content, isDirty };
+        return { ...t, content, isDirty, title };
       }),
     }));
     get().saveSession();
@@ -393,10 +407,33 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         return true;
       });
 
-      if (filtered.length === 0) return state;
+      if (filtered.length === 0) {
+        const matched = state.tabs.find(t => newTabs.some(nt => nt.id === t.id || (nt.filePath && nt.filePath === t.filePath)));
+        return matched ? { activeTabId: matched.id } : state;
+      }
+
       return {
         tabs: [...state.tabs, ...filtered],
         activeTabId: filtered[filtered.length - 1].id,
+      };
+    });
+    get().saveSession();
+  },
+
+  insertTabAtIndex: (tab, index) => {
+    set((state) => {
+      // If the tab is already in this window (by id or by filePath), just focus it
+      const existing = state.tabs.find(t => t.id === tab.id || (t.filePath && t.filePath === tab.filePath));
+      if (existing) {
+        return { activeTabId: existing.id };
+      }
+
+      const nextTabs = [...state.tabs];
+      const safeIndex = Math.max(0, Math.min(index, nextTabs.length));
+      nextTabs.splice(safeIndex, 0, tab);
+      return {
+        tabs: nextTabs,
+        activeTabId: tab.id,
       };
     });
     get().saveSession();
