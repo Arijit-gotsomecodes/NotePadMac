@@ -473,7 +473,6 @@ export const TabBar: React.FC = () => {
             window.removeEventListener('pointerup', onPointerUp);
 
             invoke('hide_drag_ghost').catch(() => {});
-            emit('highlight-drop-target', { targetWindow: null });
 
             // Trigger finish_tab_drag if:
             //  1. Dragging outside own tab bar (vertical or horizontal), OR
@@ -494,6 +493,8 @@ export const TabBar: React.FC = () => {
                         screenY: upEvent.screenY,
                         allowDetach,
                     }).then(async (result) => {
+                        // Clear placeholder AFTER import-tab has been processed by target window
+                        emit('highlight-drop-target', { targetWindow: null });
                         if (result === 'merged' || result === 'detached') {
                             const remaining = useEditorStore.getState().tabs.filter(t => t.id !== id);
                             if (remaining.length === 0) {
@@ -508,6 +509,7 @@ export const TabBar: React.FC = () => {
                         setIsWindowDimmed(false);
                         setIsNearOwnTabBar(false);
                     }).catch((err) => {
+                        emit('highlight-drop-target', { targetWindow: null });
                         console.error(err);
                         setDraggedId(null);
                         setDragTranslate(0);
@@ -519,6 +521,7 @@ export const TabBar: React.FC = () => {
                 }
             }
 
+            emit('highlight-drop-target', { targetWindow: null });
             setDraggedId(null);
             setDragTranslate(0);
             setIsFloating(false);
