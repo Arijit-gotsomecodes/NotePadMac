@@ -313,14 +313,20 @@ export const TabBar: React.FC = () => {
             const pointerDelta = moveEvent.clientX - startX;
 
             // Two separate thresholds to prevent boundary oscillation (hysteresis):
-            // - Enter floating: cross just 5px outside the tab bar
-            // - Exit floating: must return well inside the tab bar (20px deep) before snapping back
+            // - Enter floating: cross vertical threshold or drag past left/right tab bar edges
+            // - Exit floating: must return well inside the tab bar before snapping back
             const ENTER_THRESHOLD_TOP = 5;
             const ENTER_THRESHOLD_BOTTOM = 10;
-            const EXIT_MARGIN = 20; // must be this far inside tab bar to return
+            const ENTER_THRESHOLD_HORIZ = 25; // 25px past left/right tab bar edge
+            const EXIT_MARGIN_V = 18;
 
-            const enterFloat = moveEvent.clientY < listRect.top - ENTER_THRESHOLD_TOP || moveEvent.clientY > listRect.bottom + ENTER_THRESHOLD_BOTTOM;
-            const exitFloat = moveEvent.clientY > listRect.top + EXIT_MARGIN && moveEvent.clientY < listRect.bottom - EXIT_MARGIN;
+            const isOutsideV = moveEvent.clientY < listRect.top - ENTER_THRESHOLD_TOP || moveEvent.clientY > listRect.bottom + ENTER_THRESHOLD_BOTTOM;
+            const isOutsideH = moveEvent.clientX < listRect.left - ENTER_THRESHOLD_HORIZ || moveEvent.clientX > listRect.right + ENTER_THRESHOLD_HORIZ;
+            const enterFloat = isOutsideV || isOutsideH;
+
+            const isInsideV = moveEvent.clientY > listRect.top + EXIT_MARGIN_V && moveEvent.clientY < listRect.bottom - EXIT_MARGIN_V;
+            const isInsideH = moveEvent.clientX >= listRect.left - 10 && moveEvent.clientX <= listRect.right + 10;
+            const exitFloat = isInsideV && isInsideH;
 
             if (enterFloat && !isFloatingRef.current) {
                 // Entering floating:
@@ -470,10 +476,11 @@ export const TabBar: React.FC = () => {
             emit('highlight-drop-target', { targetWindow: null });
 
             // Trigger finish_tab_drag if:
-            //  1. Dragging outside own tab bar (vertical far away), OR
+            //  1. Dragging outside own tab bar (vertical or horizontal), OR
             //  2. Tab is floating (pulled out of tab bar) — Rust backend handles hit detection
             //     against all other windows, so we always delegate to it.
-            const isFarAway = upEvent.clientY < listRect.top - 20 || upEvent.clientY > listRect.bottom + 35;
+            const isFarAway = upEvent.clientY < listRect.top - 20 || upEvent.clientY > listRect.bottom + 35
+                || upEvent.clientX < listRect.left - 25 || upEvent.clientX > listRect.right + 25;
             if (isDragging && (isFarAway || isFloatingRef.current)) {
                 const currentTab = useEditorStore.getState().tabs.find(t => t.id === id);
                 const currentTabs = useEditorStore.getState().tabs;
