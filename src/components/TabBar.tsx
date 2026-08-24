@@ -343,19 +343,18 @@ export const TabBar: React.FC = () => {
             const pointerDelta = moveEvent.clientX - startX;
 
             // Two separate thresholds to prevent boundary oscillation (hysteresis):
-            // - Enter floating: cross vertical threshold or drag past left/right tab bar edges
-            // - Exit floating: must return well inside the tab bar before snapping back
-            const ENTER_THRESHOLD_TOP = 5;
-            const ENTER_THRESHOLD_BOTTOM = 10;
-            const ENTER_THRESHOLD_HORIZ = 25; // 25px past left/right tab bar edge
-            const EXIT_MARGIN_V = 18;
+            // - Enter floating: cross vertical threshold or drag past left/right tab bar edges with clear intention
+            // - Exit floating: smoothly snaps back once cursor is within generous tab bar area
+            const ENTER_THRESHOLD_TOP = 22;
+            const ENTER_THRESHOLD_BOTTOM = 28;
+            const ENTER_THRESHOLD_HORIZ = 45;
 
             const isOutsideV = moveEvent.clientY < listRect.top - ENTER_THRESHOLD_TOP || moveEvent.clientY > listRect.bottom + ENTER_THRESHOLD_BOTTOM;
             const isOutsideH = moveEvent.clientX < listRect.left - ENTER_THRESHOLD_HORIZ || moveEvent.clientX > listRect.right + ENTER_THRESHOLD_HORIZ;
             const enterFloat = isOutsideV || isOutsideH;
 
-            const isInsideV = moveEvent.clientY > listRect.top + EXIT_MARGIN_V && moveEvent.clientY < listRect.bottom - EXIT_MARGIN_V;
-            const isInsideH = moveEvent.clientX >= listRect.left - 10 && moveEvent.clientX <= listRect.right + 10;
+            const isInsideV = moveEvent.clientY >= listRect.top - 8 && moveEvent.clientY <= listRect.bottom + 12;
+            const isInsideH = moveEvent.clientX >= listRect.left - 20 && moveEvent.clientX <= listRect.right + 20;
             const exitFloat = isInsideV && isInsideH;
 
             if (enterFloat && !isFloatingRef.current) {
@@ -366,9 +365,14 @@ export const TabBar: React.FC = () => {
                 isFloatingRef.current = true;
                 if (floatingAnimTimerRef.current) clearTimeout(floatingAnimTimerRef.current);
                 flushSync(() => {
-                    setDragTranslate(0);
                     setIsFloating(true);
                 });
+                // Reset translate after the width collapse transition finishes
+                // This prevents the tab from visually flying back to origin before it fades out
+                floatingAnimTimerRef.current = setTimeout(() => {
+                    setDragTranslate(0);
+                }, 200) as unknown as number;
+
                 const currentTab = useEditorStore.getState().tabs.find(t => t.id === id);
                 invoke('show_drag_ghost', {
                     title: currentTab?.title || 'Untitled',
