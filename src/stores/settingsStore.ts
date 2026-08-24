@@ -10,10 +10,12 @@ interface SettingsState {
     showFindReplace: boolean;
     findReplaceMode: 'find' | 'replace';
     reduceMotion: boolean;
+    autoSave: boolean;
 
     setTheme: (theme: 'light' | 'dark' | 'system') => void;
     toggleWordWrap: () => void;
     toggleReduceMotion: () => void;
+    toggleAutoSave: () => void;
     setZoom: (zoom: number) => void;
     zoomIn: () => void;
     zoomOut: () => void;
@@ -37,11 +39,20 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     showFindReplace: false,
     findReplaceMode: 'find',
     reduceMotion: false,
+    autoSave: typeof localStorage !== 'undefined' ? localStorage.getItem('notepad_autosave') === 'true' : false,
     isSettingsOpen: false,
 
     setTheme: (theme) => set({ theme }),
     toggleWordWrap: () => set((s) => ({ wordWrap: !s.wordWrap })),
     toggleReduceMotion: () => set((s) => ({ reduceMotion: !s.reduceMotion })),
+    toggleAutoSave: () =>
+        set((s) => {
+            const next = !s.autoSave;
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('notepad_autosave', String(next));
+            }
+            return { autoSave: next };
+        }),
     setZoom: (zoom) => set({ zoom: Math.max(50, Math.min(500, zoom)) }),
     zoomIn: () => set((s) => ({ zoom: Math.min(500, s.zoom + 10) })),
     zoomOut: () => set((s) => ({ zoom: Math.max(50, s.zoom - 10) })),

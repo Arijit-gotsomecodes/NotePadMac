@@ -1,10 +1,12 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import { saveTab } from '../hooks/useFileOperations';
 import './Editor.css';
 
 export const Editor: React.FC = () => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const {
         tabs,
         activeTabId,
@@ -13,7 +15,7 @@ export const Editor: React.FC = () => {
         updateScrollTop,
         pushUndo,
     } = useEditorStore();
-    const { wordWrap, zoom, fontFamily, fontSize } = useSettingsStore();
+    const { wordWrap, zoom, fontFamily, fontSize, autoSave } = useSettingsStore();
 
     const activeTab = tabs.find((t) => t.id === activeTabId);
 
@@ -51,6 +53,36 @@ export const Editor: React.FC = () => {
             updateCursorPosition();
         }
     }, [activeTabId]);
+
+    // Auto-save debounced (1000ms after user stops typing) for tabs with an existing filePath
+    useEffect(() => {
+        if (!autoSave || !activeTab?.filePath || !activeTab.isDirty) {
+            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+            return;
+        }
+
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = setTimeout(() => {
+            saveTab(activeTab.id);
+        }, 1000);
+
+        return () => {
+            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        };
+    }, [activeTab?.content, activeTab?.filePath, activeTab?.isDirty, autoSave, activeTab?.id]);
+
+    // Auto-save immediately when window loses focus (blur)
+    useEffect(() => {
+        const handleWindowBlur = () => {
+            const currentTab = useEditorStore.getState().getActiveTab();
+            const { autoSave: isAutoSave } = useSettingsStore.getState();
+            if (isAutoSave && currentTab?.filePath && currentTab.isDirty) {
+                saveTab(currentTab.id);
+            }
+        };
+        window.addEventListener('blur', handleWindowBlur);
+        return () => window.removeEventListener('blur', handleWindowBlur);
+    }, []);
 
     const handleInput = useCallback(
         (e: React.ChangeEvent<HTMLTextAreaElement>) => {
