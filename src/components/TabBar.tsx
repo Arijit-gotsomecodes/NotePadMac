@@ -91,6 +91,7 @@ export const TabBar: React.FC = () => {
                 }
                 setCrossDropIndex(null);
                 crossDropIndexRef.current = null;
+                setIsCrossDropTarget(false);
                 setTimeout(() => setJustImportedId(null), 400);
             } catch (err) {
                 console.error('Failed to import tab:', err);
@@ -235,7 +236,7 @@ export const TabBar: React.FC = () => {
             } catch (_) { /* outerPosition or onMoved failed — placeholder will just not show */ }
 
             // Listen for mouse release to attempt merge, only restoring dim if NOT merged
-            const onSingleTabPointerUp = async () => {
+            const onSingleTabPointerUp = async (upEvent?: PointerEvent) => {
                 window.removeEventListener('pointerup', onSingleTabPointerUp);
                 unlistenMoved?.();
                 emit('highlight-drop-target', { target_window: null });
@@ -244,6 +245,8 @@ export const TabBar: React.FC = () => {
                         const merged = await invoke<boolean>('try_merge_window', {
                             sourceWindow: getCurrentWindow().label,
                             tabJson: JSON.stringify(currentTab),
+                            screenX: upEvent?.screenX ?? null,
+                            screenY: upEvent?.screenY ?? null,
                         });
                         if (!merged) {
                             setIsWindowDimmed(false);
@@ -401,22 +404,13 @@ export const TabBar: React.FC = () => {
                 if (el) naturalLeft += el.getBoundingClientRect().width;
             }
 
-            // Axis detection: only apply horizontal reordering when the drag is primarily horizontal.
-            // If the user drags mostly upward/downward, suppress horizontal translation so the tab
-            // doesn't drift sideways while the user is trying to pull it out to float.
-            const absHDelta = Math.abs(moveEvent.clientX - startX);
-            const absVDelta = Math.abs(moveEvent.clientY - startY);
-            const isDragHorizontal = absHDelta >= absVDelta;
-
             // Set transform so visual position matches visualLeft 1:1 strictly within the tab bar.
-            // Do NOT update while floating: tab is invisible, and changing translateX
-            // while opacity transition is active causes a visible flash/snap.
-            if (!isFloatingRef.current && isDragHorizontal) {
+            // Do NOT update while floating: tab is invisible and managed by ghost window.
+            if (!isFloatingRef.current) {
                 setDragTranslate(visualLeft - naturalLeft);
+            } else {
+                return;
             }
-
-            // Don't reorder slots while floating or dragging vertically
-            if (isFloatingRef.current || !isDragHorizontal) return;
 
 
             // Check right neighbor: moving right, covers >30% of right neighbor
@@ -643,7 +637,7 @@ export const TabBar: React.FC = () => {
                                     <React.Fragment key={tab.id}>
                                         {showPlaceholderBefore && (
                                             <div
-                                                key="__cross_placeholder__"
+                                                key={`__cross_placeholder_before_${tab.id}__`}
                                                 className="tab tab-drop-placeholder"
                                                 style={{ '--target-tab-width': `${targetTabWidth}px` } as React.CSSProperties}
                                             />
