@@ -148,6 +148,7 @@ export const MenuBar: React.FC = () => {
         { label: 'Open...', shortcut: '⌘O', icon: <IconFolderOpen />, action: onOpen },
         { label: 'Save', shortcut: '⌘S', icon: <IconSave />, action: onSave },
         { label: 'Save As...', shortcut: '⇧⌘S', icon: <IconSaveAs />, action: onSaveAs },
+        { label: 'Auto Save', icon: <IconSave />, toggle: true, checked: settingsStore.autoSave, action: () => { setOpenMenu(null); settingsStore.toggleAutoSave(); } },
         { label: '', divider: true },
         { label: 'Close Tab', shortcut: '⌘W', icon: <IconX />, action: () => { setOpenMenu(null); const tab = editorStore.getActiveTab(); if (tab) editorStore.closeTab(tab.id); } },
     ];
