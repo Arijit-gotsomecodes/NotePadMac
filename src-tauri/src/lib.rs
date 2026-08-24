@@ -317,7 +317,7 @@ fn finish_tab_drag(
             let logical_y = (pos.y as f64) / scale;
             let logical_w = (size.width as f64) / scale;
 
-            if screen_x >= logical_x && screen_x <= (logical_x + logical_w) && screen_y >= (logical_y - 15.0) && screen_y <= (logical_y + 75.0) {
+            if screen_x >= logical_x && screen_x <= (logical_x + logical_w) && screen_y >= (logical_y - 15.0) && screen_y <= (logical_y + 90.0) {
                 win.emit("import-tab", tab_json.clone()).ok();
                 return Ok("merged".to_string());
             }
