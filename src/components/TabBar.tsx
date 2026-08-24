@@ -18,6 +18,7 @@ export const TabBar: React.FC = () => {
     const [dragTranslate, setDragTranslate] = React.useState<number>(0);
     const [isFloating, setIsFloating] = React.useState<boolean>(false);
     const [isCrossDropTarget, setIsCrossDropTarget] = React.useState<boolean>(false);
+    const isCrossDropTargetRef = useRef<boolean>(false);
     const [crossDropIndex, setCrossDropIndex] = React.useState<number | null>(null);
     const crossDropIndexRef = useRef<number | null>(null);
     const [isWindowDimmed, setIsWindowDimmed] = React.useState<boolean>(false);
@@ -91,6 +92,7 @@ export const TabBar: React.FC = () => {
                 }
                 setCrossDropIndex(null);
                 crossDropIndexRef.current = null;
+                isCrossDropTargetRef.current = false;
                 setIsCrossDropTarget(false);
                 setTimeout(() => setJustImportedId(null), 400);
             } catch (err) {
@@ -102,6 +104,7 @@ export const TabBar: React.FC = () => {
             const myLabel = getCurrentWindow().label;
             const targetWin = e.payload.target_window ?? e.payload.targetWindow ?? null;
             if (targetWin === myLabel) {
+                isCrossDropTargetRef.current = true;
                 setIsCrossDropTarget(true);
                 const localX = e.payload.local_x;
                 if (typeof localX === 'number') {
@@ -125,6 +128,7 @@ export const TabBar: React.FC = () => {
                     crossDropIndexRef.current = null;
                 }
             } else {
+                isCrossDropTargetRef.current = false;
                 setIsCrossDropTarget(false);
                 setCrossDropIndex(null);
                 crossDropIndexRef.current = null;
@@ -467,9 +471,9 @@ export const TabBar: React.FC = () => {
 
             // Trigger finish_tab_drag if:
             //  1. Dragging outside own tab bar (vertical), OR
-            //  2. A cross-window placeholder is actively showing (isCrossDropTarget)
+            //  2. A cross-window placeholder is actively showing (isCrossDropTargetRef - use ref to avoid stale closure)
             const isFarAway = upEvent.clientY < listRect.top - 20 || upEvent.clientY > listRect.bottom + 35;
-            const hasCrossTarget = crossDropIndexRef.current !== null || isCrossDropTarget;
+            const hasCrossTarget = isCrossDropTargetRef.current || crossDropIndexRef.current !== null;
             if (isDragging && (isFarAway || (isFloatingRef.current && hasCrossTarget))) {
                 const currentTab = useEditorStore.getState().tabs.find(t => t.id === id);
                 const currentTabs = useEditorStore.getState().tabs;
