@@ -43,6 +43,41 @@
   background: var(--bg-tab-hover);
 }
 
+/* Vertical hairline divider for inactive tabs */
+.tab-divider {
+  position: absolute;
+  right: -3.5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 1;
+}
+
+[data-theme='dark'] .tab-divider {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Hide divider when tab is active or hovered */
+.tab.active .tab-divider,
+.tab:hover .tab-divider {
+  opacity: 0;
+}
+
+/* Hide divider on the tab immediately before an active or hovered tab */
+.tab:has(+ .tab.active) .tab-divider,
+.tab:has(+ .tab:hover) .tab-divider {
+  opacity: 0;
+}
+
+/* Hide divider on the last tab */
+.tab:last-of-type .tab-divider {
+  opacity: 0;
+}
+
 .tab.active {
   background: var(--bg-tab-active);
   z-index: 2;
