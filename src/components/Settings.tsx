@@ -20,7 +20,8 @@ export const Settings: React.FC = () => {
         isSettingsOpen, toggleSettings,
         theme, setTheme,
         fontFamily, setFontFamily, fontSize, setFontSize,
-        wordWrap, toggleWordWrap
+        wordWrap, toggleWordWrap,
+        reduceMotion, toggleReduceMotion
     } = useSettingsStore();
 
     const overlayRef = useRef<HTMLDivElement>(null);
@@ -142,6 +143,19 @@ export const Settings: React.FC = () => {
                                 onClick={toggleWordWrap}
                                 role="switch"
                                 aria-checked={wordWrap}
+                            >
+                                <div className="settings-toggle-handle"></div>
+                            </div>
+                        </div>
+
+                        {/* Reduce Motion */}
+                        <div className="settings-row">
+                            <span className="settings-label">Reduce motion</span>
+                            <div
+                                className={`settings-toggle ${reduceMotion ? 'active' : ''}`}
+                                onClick={toggleReduceMotion}
+                                role="switch"
+                                aria-checked={reduceMotion}
                             >
                                 <div className="settings-toggle-handle"></div>
                             </div>

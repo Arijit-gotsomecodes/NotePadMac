@@ -9,9 +9,11 @@ interface SettingsState {
     fontSize: number;
     showFindReplace: boolean;
     findReplaceMode: 'find' | 'replace';
+    reduceMotion: boolean;
 
     setTheme: (theme: 'light' | 'dark' | 'system') => void;
     toggleWordWrap: () => void;
+    toggleReduceMotion: () => void;
     setZoom: (zoom: number) => void;
     zoomIn: () => void;
     zoomOut: () => void;
@@ -34,10 +36,12 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     fontSize: 14,
     showFindReplace: false,
     findReplaceMode: 'find',
+    reduceMotion: false,
     isSettingsOpen: false,
 
     setTheme: (theme) => set({ theme }),
     toggleWordWrap: () => set((s) => ({ wordWrap: !s.wordWrap })),
+    toggleReduceMotion: () => set((s) => ({ reduceMotion: !s.reduceMotion })),
     setZoom: (zoom) => set({ zoom: Math.max(50, Math.min(500, zoom)) }),
     zoomIn: () => set((s) => ({ zoom: Math.min(500, s.zoom + 10) })),
     zoomOut: () => set((s) => ({ zoom: Math.max(50, s.zoom - 10) })),
