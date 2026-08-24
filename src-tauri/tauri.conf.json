@@ -33,7 +33,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app"],
+    "targets": ["app", "dmg"],
     "category": "Productivity",
     "shortDescription": "Windows 11 Notepad for macOS",
     "icon": [
