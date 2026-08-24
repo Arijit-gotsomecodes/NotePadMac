@@ -174,23 +174,48 @@ fn get_window_tab(window: tauri::Window) -> Option<String> {
     None
 }
 
+use std::sync::atomic::{AtomicU64, Ordering};
+static CURRENT_GHOST_WIDTH: AtomicU64 = AtomicU64::new(175u64);
+
+fn get_ghost_width() -> f64 {
+    f64::from_bits(CURRENT_GHOST_WIDTH.load(Ordering::Relaxed))
+}
+
+fn set_ghost_width(w: f64) {
+    CURRENT_GHOST_WIDTH.store(w.to_bits(), Ordering::Relaxed);
+}
+
 #[tauri::command]
-fn show_drag_ghost(app: tauri::AppHandle, title: String, x: f64, y: f64) -> Result<(), String> {
+fn show_drag_ghost(app: tauri::AppHandle, title: String, x: f64, y: f64, width: Option<f64>) -> Result<(), String> {
     use tauri::{Manager, Emitter, Listener};
+    let tab_width = width.unwrap_or(175.0);
+    set_ghost_width(tab_width);
+    let win_w = (tab_width + 40.0).max(220.0);
+    let win_h = 48.0;
+    let pos_x = x - tab_width / 2.0;
+    let pos_y = y - 18.0;
+
     if let Some(ghost) = app.get_webview_window("tab-drag-ghost") {
-        ghost.set_position(tauri::LogicalPosition::new(x - 90.0, y - 18.0)).ok();
+        let was_visible = ghost.is_visible().unwrap_or(true);
+        ghost.set_size(tauri::LogicalSize::new(win_w, win_h)).ok();
+        ghost.set_position(tauri::LogicalPosition::new(pos_x, pos_y)).ok();
         ghost.show().ok();
         ghost.emit("update-ghost-title", title).ok();
+        ghost.emit("update-ghost-width", tab_width).ok();
+        // Trigger pop-in animation on the frontend only when re-appearing after being hidden
+        if !was_visible {
+            ghost.emit("ghost-show", {}).ok();
+        }
     } else {
         let ghost = tauri::WebviewWindowBuilder::new(&app, "tab-drag-ghost", tauri::WebviewUrl::App("index.html?ghost=true".into()))
             .title("Ghost")
-            .inner_size(190.0, 42.0)
+            .inner_size(win_w, win_h)
             .decorations(false)
             .transparent(true)
             .always_on_top(true)
             .shadow(false)
             .skip_taskbar(true)
-            .position(x - 90.0, y - 18.0)
+            .position(pos_x, pos_y)
             .build()
             .map_err(|e| e.to_string())?;
 
@@ -199,6 +224,7 @@ fn show_drag_ghost(app: tauri::AppHandle, title: String, x: f64, y: f64) -> Resu
         ghost.once("ghost-ready", move |_| {
             if let Some(g) = app_handle.get_webview_window("tab-drag-ghost") {
                 g.emit("update-ghost-title", t_clone).ok();
+                g.emit("update-ghost-width", tab_width).ok();
             }
         });
 
@@ -220,8 +246,11 @@ fn show_drag_ghost(app: tauri::AppHandle, title: String, x: f64, y: f64) -> Resu
 #[tauri::command]
 fn move_drag_ghost(app: tauri::AppHandle, x: f64, y: f64) {
     use tauri::Manager;
+    let tab_width = get_ghost_width();
+    let pos_x = x - tab_width / 2.0;
+    let pos_y = y - 18.0;
     if let Some(ghost) = app.get_webview_window("tab-drag-ghost") {
-        ghost.set_position(tauri::LogicalPosition::new(x - 90.0, y - 18.0)).ok();
+        ghost.set_position(tauri::LogicalPosition::new(pos_x, pos_y)).ok();
     }
 }
 
@@ -233,8 +262,14 @@ fn hide_drag_ghost(app: tauri::AppHandle) {
     }
 }
 
+#[derive(serde::Serialize, Clone)]
+struct DragHoverTarget {
+    target_window: String,
+    local_x: f64,
+}
+
 #[tauri::command]
-fn check_drag_hover(app: tauri::AppHandle, source_window: String, screen_x: f64, screen_y: f64) -> Option<String> {
+fn check_drag_hover(app: tauri::AppHandle, source_window: String, screen_x: f64, screen_y: f64) -> Option<DragHoverTarget> {
     use tauri::Manager;
     for (label, win) in app.webview_windows() {
         if label == source_window || label == "tab-drag-ghost" {
@@ -246,7 +281,11 @@ fn check_drag_hover(app: tauri::AppHandle, source_window: String, screen_x: f64,
             let logical_w = (size.width as f64) / scale;
 
             if screen_x >= logical_x && screen_x <= (logical_x + logical_w) && screen_y >= (logical_y - 15.0) && screen_y <= (logical_y + 65.0) {
-                return Some(label);
+                let local_x = screen_x - logical_x;
+                return Some(DragHoverTarget {
+                    target_window: label,
+                    local_x,
+                });
             }
         }
     }
@@ -295,6 +334,50 @@ fn finish_tab_drag(
 }
 
 #[tauri::command]
+fn try_merge_window(
+    app: tauri::AppHandle,
+    source_window: String,
+    tab_json: String,
+) -> Result<bool, String> {
+    use tauri::{Manager, Emitter};
+
+    let src_win = match app.get_webview_window(&source_window) {
+        Some(w) => w,
+        None => return Ok(false),
+    };
+
+    let (src_pos, _src_size, src_scale) = match (src_win.outer_position(), src_win.outer_size(), src_win.scale_factor()) {
+        (Ok(p), Ok(s), Ok(sc)) => (p, s, sc),
+        _ => return Ok(false),
+    };
+
+    let src_x = (src_pos.x as f64) / src_scale;
+    let src_y = (src_pos.y as f64) / src_scale;
+
+    for (label, win) in app.webview_windows() {
+        if label == source_window || label == "tab-drag-ghost" {
+            continue;
+        }
+        if let (Ok(pos), Ok(size), Ok(scale)) = (win.outer_position(), win.outer_size(), win.scale_factor()) {
+            let target_x = (pos.x as f64) / scale;
+            let target_y = (pos.y as f64) / scale;
+            let target_w = (size.width as f64) / scale;
+
+            // Check if source window's top-left / tab-bar overlaps with target window's tab-bar
+            if src_x >= (target_x - 120.0) && src_x <= (target_x + target_w + 50.0)
+                && src_y >= (target_y - 30.0) && src_y <= (target_y + 80.0)
+            {
+                win.emit("import-tab", tab_json.clone()).ok();
+                src_win.destroy().ok();
+                return Ok(true);
+            }
+        }
+    }
+
+    Ok(false)
+}
+
+#[tauri::command]
 fn merge_all_windows() {
     #[cfg(target_os = "macos")]
     {
@@ -310,6 +393,15 @@ fn merge_all_windows() {
             }
         }
     }
+}
+
+#[tauri::command]
+fn get_window_count(app: tauri::AppHandle) -> usize {
+    use tauri::Manager;
+    app.webview_windows()
+        .into_iter()
+        .filter(|(label, _)| label != "tab-drag-ghost")
+        .count()
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -335,7 +427,9 @@ pub fn run() {
             hide_drag_ghost,
             check_drag_hover,
             finish_tab_drag,
+            try_merge_window,
             merge_all_windows,
+            get_window_count,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]

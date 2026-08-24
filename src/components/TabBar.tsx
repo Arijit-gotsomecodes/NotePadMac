@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { emit, listen } from '@tauri-apps/api/event';
@@ -17,6 +18,13 @@ export const TabBar: React.FC = () => {
     const [dragTranslate, setDragTranslate] = React.useState<number>(0);
     const [isFloating, setIsFloating] = React.useState<boolean>(false);
     const [isCrossDropTarget, setIsCrossDropTarget] = React.useState<boolean>(false);
+    const [crossDropIndex, setCrossDropIndex] = React.useState<number | null>(null);
+    const crossDropIndexRef = useRef<number | null>(null);
+    const [isWindowDimmed, setIsWindowDimmed] = React.useState<boolean>(false);
+    const [isNearOwnTabBar, setIsNearOwnTabBar] = React.useState<boolean>(false);
+    const [justImportedId, setJustImportedId] = React.useState<string | null>(null);
+    const floatingAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const windowCountRef = useRef<number>(1);
     const tabElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
     // Stores { id, prevLeft } for tabs that need FLIP animation after next render
     const flipPendingRef = useRef<Array<{ id: string; prevLeft: number }>>([]);
@@ -42,18 +50,56 @@ export const TabBar: React.FC = () => {
         let unlistenImport: (() => void) | undefined;
         let unlistenHighlight: (() => void) | undefined;
 
-        listen<string>('import-tab', (e) => {
+        listen<any>('import-tab', (e) => {
             try {
-                const tab = JSON.parse(e.payload);
-                useEditorStore.getState().addMultipleTabs([tab]);
+                const tab = typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload;
+                if (!tab || typeof tab !== 'object') return;
+                setJustImportedId(tab.id);
+                const idx = crossDropIndexRef.current;
+                if (idx !== null && idx !== undefined) {
+                    useEditorStore.getState().insertTabAtIndex(tab, idx);
+                } else {
+                    useEditorStore.getState().addMultipleTabs([tab]);
+                }
+                setCrossDropIndex(null);
+                crossDropIndexRef.current = null;
+                setTimeout(() => setJustImportedId(null), 400);
             } catch (err) {
                 console.error('Failed to import tab:', err);
             }
         }).then(u => { unlistenImport = u; });
 
-        listen<{ targetWindow: string | null }>('highlight-drop-target', (e) => {
+        listen<{ target_window?: string | null; targetWindow?: string | null; local_x?: number }>('highlight-drop-target', (e) => {
             const myLabel = getCurrentWindow().label;
-            setIsCrossDropTarget(e.payload.targetWindow === myLabel);
+            const targetWin = e.payload.target_window ?? e.payload.targetWindow ?? null;
+            if (targetWin === myLabel) {
+                setIsCrossDropTarget(true);
+                const localX = e.payload.local_x;
+                if (typeof localX === 'number') {
+                    const currentTabs = useEditorStore.getState().tabs;
+                    let insertIdx = currentTabs.length;
+                    for (let i = 0; i < currentTabs.length; i++) {
+                        const el = tabElementsRef.current.get(currentTabs[i].id);
+                        if (el) {
+                            const rect = el.getBoundingClientRect();
+                            const midX = rect.left + rect.width / 2;
+                            if (localX < midX) {
+                                insertIdx = i;
+                                break;
+                            }
+                        }
+                    }
+                    setCrossDropIndex(insertIdx);
+                    crossDropIndexRef.current = insertIdx;
+                } else {
+                    setCrossDropIndex(null);
+                    crossDropIndexRef.current = null;
+                }
+            } else {
+                setIsCrossDropTarget(false);
+                setCrossDropIndex(null);
+                crossDropIndexRef.current = null;
+            }
         }).then(u => { unlistenHighlight = u; });
 
         const handleOutside = () => setContextMenu(null);
@@ -67,15 +113,134 @@ export const TabBar: React.FC = () => {
         };
     }, []);
 
+    const [scrollState, setScrollState] = React.useState<{ canScrollLeft: boolean; canScrollRight: boolean }>({
+        canScrollLeft: false,
+        canScrollRight: false,
+    });
+
+    const updateScrollState = React.useCallback(() => {
+        const el = tabBarRef.current;
+        if (!el) return;
+        const canLeft = el.scrollLeft > 2;
+        const canRight = Math.ceil(el.scrollLeft + el.clientWidth) < el.scrollWidth - 2;
+        setScrollState(prev => {
+            if (prev.canScrollLeft === canLeft && prev.canScrollRight === canRight) return prev;
+            return { canScrollLeft: canLeft, canScrollRight: canRight };
+        });
+    }, []);
+
+    useEffect(() => {
+        const el = tabBarRef.current;
+        if (!el) return;
+        updateScrollState();
+
+        const handleScroll = () => updateScrollState();
+        el.addEventListener('scroll', handleScroll, { passive: true });
+
+        const resizeObserver = new ResizeObserver(() => updateScrollState());
+        resizeObserver.observe(el);
+
+        return () => {
+            el.removeEventListener('scroll', handleScroll);
+            resizeObserver.disconnect();
+        };
+    }, [tabs, updateScrollState]);
+
     useEffect(() => {
         const activeEl = tabBarRef.current?.querySelector('.tab.active');
         activeEl?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
     }, [activeTabId]);
 
-    const handlePointerDown = (e: React.PointerEvent, id: string) => {
+    useEffect(() => {
+        const appEl = document.querySelector('.app');
+        if (appEl) {
+            if (isWindowDimmed) {
+                appEl.classList.add('is-tab-floating');
+            } else {
+                appEl.classList.remove('is-tab-floating');
+            }
+        }
+        return () => {
+            document.querySelector('.app')?.classList.remove('is-tab-floating');
+        };
+    }, [isWindowDimmed]);
+
+    const handlePointerDown = async (e: React.PointerEvent, id: string) => {
         if (e.button !== 0 || (e.target as HTMLElement).closest('.tab-close')) return;
 
         setActiveTab(id);
+
+        const winCount = await invoke<number>('get_window_count').catch(() => 1);
+        windowCountRef.current = winCount;
+
+        // When there is only 1 tab, drag the entire window natively instead of creating a ghost
+        // NOTE: startDragging() resolves immediately — we must use pointerup to detect drag end
+        const currentTabs = useEditorStore.getState().tabs;
+        if (currentTabs.length <= 1) {
+            const currentTab = currentTabs[0];
+
+            if (winCount > 1) {
+                setIsWindowDimmed(true);
+            }
+
+            // Calculate the drag offset (cursor position relative to window top-left)
+            // so we can estimate cursor screen coordinates as the window moves
+            let unlistenMoved: (() => void) | undefined;
+            try {
+                const outerPos = await getCurrentWindow().outerPosition();
+                const scale = window.devicePixelRatio || 1;
+                const dragOffsetX = e.screenX - outerPos.x / scale;
+                const dragOffsetY = e.screenY - outerPos.y / scale;
+
+                // Track window movement to show placeholder in target windows
+                unlistenMoved = await getCurrentWindow().onMoved(({ payload: pos }) => {
+                    const estimatedCursorX = pos.x / scale + dragOffsetX;
+                    const estimatedCursorY = pos.y / scale + dragOffsetY;
+                    invoke<{ target_window: string; local_x: number } | null>('check_drag_hover', {
+                        sourceWindow: getCurrentWindow().label,
+                        screenX: estimatedCursorX,
+                        screenY: estimatedCursorY,
+                    }).then(targetWin => {
+                        emit('highlight-drop-target', targetWin || { target_window: null });
+                    }).catch(() => {});
+                });
+            } catch (_) { /* outerPosition or onMoved failed — placeholder will just not show */ }
+
+            // Listen for mouse release to attempt merge, only restoring dim if NOT merged
+            const onSingleTabPointerUp = async () => {
+                window.removeEventListener('pointerup', onSingleTabPointerUp);
+                unlistenMoved?.();
+                emit('highlight-drop-target', { target_window: null });
+                if (currentTab) {
+                    try {
+                        const merged = await invoke<boolean>('try_merge_window', {
+                            sourceWindow: getCurrentWindow().label,
+                            tabJson: JSON.stringify(currentTab),
+                        });
+                        if (!merged) {
+                            setIsWindowDimmed(false);
+                        }
+                    } catch (err) {
+                        setIsWindowDimmed(false);
+                        console.error('try_merge_window error:', err);
+                    }
+                } else {
+                    setIsWindowDimmed(false);
+                }
+            };
+            window.addEventListener('pointerup', onSingleTabPointerUp);
+
+            try {
+                await getCurrentWindow().startDragging();
+            } catch (err) {
+                window.removeEventListener('pointerup', onSingleTabPointerUp);
+                unlistenMoved?.();
+                emit('highlight-drop-target', { target_window: null });
+                setIsWindowDimmed(false);
+                console.error('Window drag error:', err);
+            }
+            return;
+        }
 
         const draggedEl = tabElementsRef.current.get(id);
         if (!draggedEl) return;
@@ -95,6 +260,8 @@ export const TabBar: React.FC = () => {
         let lastPointerX = e.clientX;
         let lastSwapX = e.clientX;
         let lastSwapDirection: 'left' | 'right' | null = null;
+        // Track floating state synchronously inside closure (React state updates are async)
+        const isFloatingRef = { current: false };
 
         const onPointerMove = (moveEvent: PointerEvent) => {
             const frameDelta = moveEvent.clientX - lastPointerX;
@@ -110,29 +277,83 @@ export const TabBar: React.FC = () => {
 
             const pointerDelta = moveEvent.clientX - startX;
 
-            // Check if floating outside the tab strip bounds
-            const floatingOut = moveEvent.clientY < listRect.top - 15 || moveEvent.clientY > listRect.bottom + 25;
-            setIsFloating(floatingOut);
+            // Two separate thresholds to prevent boundary oscillation (hysteresis):
+            // - Enter floating: cross just 5px outside the tab bar
+            // - Exit floating: must return well inside the tab bar (20px deep) before snapping back
+            const ENTER_THRESHOLD_TOP = 5;
+            const ENTER_THRESHOLD_BOTTOM = 10;
+            const EXIT_MARGIN = 20; // must be this far inside tab bar to return
 
-            if (floatingOut) {
+            const enterFloat = moveEvent.clientY < listRect.top - ENTER_THRESHOLD_TOP || moveEvent.clientY > listRect.bottom + ENTER_THRESHOLD_BOTTOM;
+            const exitFloat = moveEvent.clientY > listRect.top + EXIT_MARGIN && moveEvent.clientY < listRect.bottom - EXIT_MARGIN;
+
+            if (enterFloat && !isFloatingRef.current) {
+                // Entering floating:
+                // flushSync forces an immediate synchronous render so opacity=0 is committed
+                // to the DOM *before* show_drag_ghost fires. This closes the race window where
+                // the tab is still visible at its old position while the ghost hasn't appeared.
+                isFloatingRef.current = true;
+                if (floatingAnimTimerRef.current) clearTimeout(floatingAnimTimerRef.current);
+                flushSync(() => {
+                    setDragTranslate(0);
+                    setIsFloating(true);
+                });
                 const currentTab = useEditorStore.getState().tabs.find(t => t.id === id);
                 invoke('show_drag_ghost', {
                     title: currentTab?.title || 'Untitled',
                     x: moveEvent.screenX,
                     y: moveEvent.screenY,
+                    width: draggedWidth,
                 }).catch(() => {});
 
-                invoke<string | null>('check_drag_hover', {
+                invoke<{ target_window: string; local_x: number } | null>('check_drag_hover', {
                     sourceWindow: getCurrentWindow().label,
                     screenX: moveEvent.screenX,
                     screenY: moveEvent.screenY,
                 }).then(targetWin => {
-                    emit('highlight-drop-target', { targetWindow: targetWin });
+                    emit('highlight-drop-target', targetWin || { target_window: null });
                 }).catch(() => {});
+            } else if (isFloatingRef.current) {
+                if (exitFloat) {
+                    // Returning: must be well inside tab bar before snapping back
+                    isFloatingRef.current = false;
+                    invoke('hide_drag_ghost').catch(() => {});
+                    emit('highlight-drop-target', { target_window: null });
+                    if (floatingAnimTimerRef.current) clearTimeout(floatingAnimTimerRef.current);
+                    setIsFloating(false);
+                } else {
+                    // Still floating: use move_drag_ghost (position-only, no overhead)
+                    // instead of show_drag_ghost to avoid redundant IPC and title emit every frame
+                    invoke('move_drag_ghost', {
+                        x: moveEvent.screenX,
+                        y: moveEvent.screenY,
+                    }).catch(() => {});
+
+                    invoke<{ target_window: string; local_x: number } | null>('check_drag_hover', {
+                        sourceWindow: getCurrentWindow().label,
+                        screenX: moveEvent.screenX,
+                        screenY: moveEvent.screenY,
+                    }).then(targetWin => {
+                        emit('highlight-drop-target', targetWin || { target_window: null });
+                    }).catch(() => {});
+                }
             } else {
                 invoke('hide_drag_ghost').catch(() => {});
-                emit('highlight-drop-target', { targetWindow: null });
+                emit('highlight-drop-target', { target_window: null });
             }
+
+            // Only dim this window when the floating ghost is dragged down into its text editing area below the tab bar, and ONLY if multiple windows exist
+            const isInsideEditor = moveEvent.clientX >= 0 && moveEvent.clientX <= window.innerWidth && moveEvent.clientY > listRect.bottom + 10 && moveEvent.clientY <= window.innerHeight;
+            setIsWindowDimmed(isFloatingRef.current && isInsideEditor && windowCountRef.current > 1);
+
+            // Only show own-window placeholder when hovering close to its own tab bar
+            const isNearOwnBar = isFloatingRef.current && (
+                moveEvent.clientY >= listRect.top - 20 &&
+                moveEvent.clientY <= listRect.bottom + 45 &&
+                moveEvent.clientX >= listRect.left - 40 &&
+                moveEvent.clientX <= listRect.right + 40
+            );
+            setIsNearOwnTabBar(isNearOwnBar);
 
             // Clamped absolute visual position of the dragged tab on screen
             const minVisualLeft = listRect.left;
@@ -152,11 +373,23 @@ export const TabBar: React.FC = () => {
                 if (el) naturalLeft += el.getBoundingClientRect().width;
             }
 
-            // Set transform so visual position matches visualLeft 1:1 strictly within the tab bar
-            setDragTranslate(visualLeft - naturalLeft);
+            // Axis detection: only apply horizontal reordering when the drag is primarily horizontal.
+            // If the user drags mostly upward/downward, suppress horizontal translation so the tab
+            // doesn't drift sideways while the user is trying to pull it out to float.
+            const absHDelta = Math.abs(moveEvent.clientX - startX);
+            const absVDelta = Math.abs(moveEvent.clientY - startY);
+            const isDragHorizontal = absHDelta >= absVDelta;
 
-            // Don't reorder slots while tab is hovering far outside
-            if (floatingOut) return;
+            // Set transform so visual position matches visualLeft 1:1 strictly within the tab bar.
+            // Do NOT update while floating: tab is invisible, and changing translateX
+            // while opacity transition is active causes a visible flash/snap.
+            if (!isFloatingRef.current && isDragHorizontal) {
+                setDragTranslate(visualLeft - naturalLeft);
+            }
+
+            // Don't reorder slots while floating or dragging vertically
+            if (isFloatingRef.current || !isDragHorizontal) return;
+
 
             // Check right neighbor: moving right, covers >30% of right neighbor
             if (fromIndex < currentTabs.length - 1 && frameDelta >= 0) {
@@ -235,11 +468,15 @@ export const TabBar: React.FC = () => {
                         setDraggedId(null);
                         setDragTranslate(0);
                         setIsFloating(false);
+                        setIsWindowDimmed(false);
+                        setIsNearOwnTabBar(false);
                     }).catch((err) => {
                         console.error(err);
                         setDraggedId(null);
                         setDragTranslate(0);
                         setIsFloating(false);
+                        setIsWindowDimmed(false);
+                        setIsNearOwnTabBar(false);
                     });
                     return;
                 }
@@ -248,6 +485,8 @@ export const TabBar: React.FC = () => {
             setDraggedId(null);
             setDragTranslate(0);
             setIsFloating(false);
+            setIsWindowDimmed(false);
+            setIsNearOwnTabBar(false);
         };
 
         window.addEventListener('pointermove', onPointerMove);
@@ -291,72 +530,138 @@ export const TabBar: React.FC = () => {
         }
     };
 
+    const handleWheel = (e: React.WheelEvent) => {
+        if (tabBarRef.current && e.deltaY !== 0 && e.deltaX === 0) {
+            tabBarRef.current.scrollLeft += e.deltaY;
+        }
+    };
+
     return (
-        <div className={`tab-bar ${draggedId ? 'is-dragging-any' : ''}`} data-tauri-drag-region>
+        <div
+            className={`tab-bar ${draggedId ? 'is-dragging-any' : ''} ${scrollState.canScrollLeft ? 'can-scroll-left' : ''} ${scrollState.canScrollRight ? 'can-scroll-right' : ''}`}
+            onPointerDown={(e) => {
+                // If user clicks on empty space in the tab bar (not on a tab, button, or other interactive element),
+                // start native window drag via JS. This avoids data-tauri-drag-region which breaks acceptFirstMouse.
+                const target = e.target as HTMLElement;
+                const isInteractive = target.closest('.tab, .tab-add, button, [data-no-drag]');
+                if (!isInteractive && e.button === 0) {
+                    getCurrentWindow().startDragging().catch(() => {});
+                }
+            }}
+        >
             <div
                 className={`tab-list ${isCrossDropTarget ? 'is-cross-drop-target' : ''}`}
                 ref={tabBarRef}
-                data-tauri-drag-region
+                onWheel={handleWheel}
             >
-                {tabs.map((tab) => {
-                    const isDragging = tab.id === draggedId;
-                    const style: React.CSSProperties = isDragging
-                        ? {
-                            transform: `translateX(${dragTranslate}px)`,
-                            zIndex: 100,
-                            transition: 'none',
-                            opacity: isFloating ? 0 : 0.96,
-                            pointerEvents: isFloating ? 'none' : 'auto',
+                {(() => {
+                    let targetTabWidth = 160;
+                    for (const el of tabElementsRef.current.values()) {
+                        if (el) {
+                            const w = el.getBoundingClientRect().width;
+                            if (w > 0) {
+                                targetTabWidth = w;
+                                break;
+                            }
                         }
-                        : { transform: 'translateX(0)', transition: 'transform 0.18s cubic-bezier(0.25, 1, 0.5, 1)' };
+                    }
 
                     return (
-                        <div
-                            key={tab.id}
-                            ref={(el) => {
-                                if (el) tabElementsRef.current.set(tab.id, el);
-                                else tabElementsRef.current.delete(tab.id);
-                            }}
-                            className={`tab ${tab.id === activeTabId ? 'active' : ''} ${isDragging ? 'is-dragging' : ''}`}
-                            style={style}
-                            onPointerDown={(e) => handlePointerDown(e, tab.id)}
-                            onClick={() => {
-                                if (!draggedId) setActiveTab(tab.id);
-                            }}
-                            onMouseDown={(e) => handleMiddleClick(e, tab.id)}
-                            onContextMenu={(e) => handleContextMenu(e, tab.id)}
-                        >
-                            <span className="tab-title">
-                                {tab.title}
-                            </span>
-                            <button
-                                className={`tab-close ${tab.isDirty ? 'is-dirty' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleStartClose(tab.id);
-                                }}
-                                title="Close"
-                            >
-                                {tab.isDirty && <span className="tab-indicator-dirty" />}
-                                <span className="tab-indicator-close">×</span>
-                            </button>
-                            <div className="tab-divider" />
-                        </div>
+                        <>
+                            {tabs.map((tab, index) => {
+                                const isDragging = tab.id === draggedId;
+                                const isJustImported = tab.id === justImportedId;
+                                const isOwnPlaceholder = isDragging && isFloating && isNearOwnTabBar;
+                                const isFloatingCollapsed = isDragging && isFloating && !isNearOwnTabBar;
+                                const style: React.CSSProperties = isDragging
+                                    ? isFloating
+                                        ? {
+                                            transform: 'translateX(0)',
+                                            zIndex: 10,
+                                            pointerEvents: 'none',
+                                        }
+                                        : {
+                                            transform: `translateX(${dragTranslate}px) scale(1)`,
+                                            zIndex: 100,
+                                            transition: 'none',
+                                            opacity: 0.96,
+                                            pointerEvents: 'auto',
+                                        }
+                                    : { transform: 'translateX(0)', transition: 'transform 0.18s cubic-bezier(0.25, 1, 0.5, 1)' };
+
+                                const showPlaceholderBefore = isCrossDropTarget && crossDropIndex === index;
+
+                                return (
+                                    <React.Fragment key={tab.id}>
+                                        {showPlaceholderBefore && (
+                                            <div
+                                                key="__cross_placeholder__"
+                                                className="tab tab-drop-placeholder"
+                                                style={{ '--target-tab-width': `${targetTabWidth}px` } as React.CSSProperties}
+                                            />
+                                        )}
+                                        <div
+                                            ref={(el) => {
+                                                if (el) tabElementsRef.current.set(tab.id, el);
+                                                else tabElementsRef.current.delete(tab.id);
+                                            }}
+                                            className={`tab ${tab.id === activeTabId ? 'active' : ''} ${isDragging ? 'is-dragging' : ''} ${isOwnPlaceholder ? 'is-own-drop-placeholder' : ''} ${isFloatingCollapsed ? 'is-floating-collapsed' : ''} ${isJustImported ? 'is-just-imported' : ''}`}
+                                            style={style}
+                                            onPointerDown={(e) => handlePointerDown(e, tab.id)}
+                                            onClick={() => {
+                                                if (!draggedId) setActiveTab(tab.id);
+                                            }}
+                                            onMouseDown={(e) => handleMiddleClick(e, tab.id)}
+                                            onContextMenu={(e) => handleContextMenu(e, tab.id)}
+                                        >
+                                            <span className="tab-title">
+                                                {tab.title}
+                                            </span>
+                                            <button
+                                                className={`tab-close ${tab.isDirty ? 'is-dirty' : ''}`}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleStartClose(tab.id);
+                                                }}
+                                                title="Close"
+                                            >
+                                                {tab.isDirty && <span className="tab-indicator-dirty" />}
+                                                <span className="tab-indicator-close">×</span>
+                                            </button>
+                                            <div className="tab-divider" />
+                                        </div>
+                                    </React.Fragment>
+                                );
+                            })}
+                            {/* Cross-window drop placeholder at the end of the list */}
+                            {isCrossDropTarget && (crossDropIndex === null || crossDropIndex >= tabs.length) && (
+                                <div
+                                    key="__cross_placeholder_end__"
+                                    className="tab tab-drop-placeholder"
+                                    style={{ '--target-tab-width': `${targetTabWidth}px` } as React.CSSProperties}
+                                />
+                            )}
+                        </>
                     );
-                })}
-                {/* The add button is NOT a drag region */}
+                })()}
+            </div>
+
+            {/* Add-button group — outside tab-list so it doesn't scroll.
+                The fade div is absolutely positioned to overlap the right edge of tab-list. */}
+            <div className={`tab-add-group${scrollState.canScrollRight ? ' show-fade' : ''}`}>
                 <button className="tab-add" onClick={() => addTab()} title="New Tab">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
                 </button>
-                {/* Spacer is pure drag area */}
-                <div className="tab-drag-spacer" data-tauri-drag-region />
             </div>
 
+            {/* Spacer between (+) and settings button for window drag */}
+            <div className="tab-drag-spacer" />
+
             {/* Actions container */}
-            <div className="tab-actions" data-tauri-drag-region>
+            <div className="tab-actions">
                 <button className="settings-btn" onClick={toggleSettings} title="Settings">
                     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
