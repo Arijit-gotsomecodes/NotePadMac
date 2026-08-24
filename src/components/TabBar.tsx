@@ -54,6 +54,11 @@ export const TabBar: React.FC = () => {
 
     // Run FLIP animation for neighbor tabs after each reorder
     React.useLayoutEffect(() => {
+        const { reduceMotion } = useSettingsStore.getState();
+        if (reduceMotion) {
+            flipPendingRef.current = [];
+            return;
+        }
         for (const { id, prevLeft } of flipPendingRef.current) {
             const el = tabElementsRef.current.get(id);
             if (!el) continue;
@@ -531,7 +536,8 @@ export const TabBar: React.FC = () => {
 
     const executeClose = (idToClose: string) => {
         const currentTabs = useEditorStore.getState().tabs;
-        if (currentTabs.length <= 1) {
+        const { reduceMotion } = useSettingsStore.getState();
+        if (currentTabs.length <= 1 || reduceMotion) {
             closeTab(idToClose);
             return;
         }

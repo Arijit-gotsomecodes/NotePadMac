@@ -2,11 +2,15 @@ import { useEffect, useCallback } from 'react';
 import { useSettingsStore } from '../stores/settingsStore';
 
 export const useTheme = () => {
-    const { theme } = useSettingsStore();
+    const { theme, reduceMotion } = useSettingsStore();
 
     const applyTheme = useCallback((isDark: boolean) => {
         document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     }, []);
+
+    useEffect(() => {
+        document.documentElement.classList.toggle('reduce-motion', reduceMotion);
+    }, [reduceMotion]);
 
     useEffect(() => {
         if (theme === 'system') {
