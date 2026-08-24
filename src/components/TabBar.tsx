@@ -24,6 +24,7 @@ export const TabBar: React.FC = () => {
     const [isNearOwnTabBar, setIsNearOwnTabBar] = React.useState<boolean>(false);
     const [justImportedId, setJustImportedId] = React.useState<string | null>(null);
     const [newlyAddedId, setNewlyAddedId] = React.useState<string | null>(null);
+    const [closingTabIds, setClosingTabIds] = React.useState<Set<string>>(new Set());
     const mountedRef = useRef<boolean>(false);
     const prevTabIdsRef = useRef<Set<string>>(new Set(tabs.map(t => t.id)));
     const floatingAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -528,6 +529,23 @@ export const TabBar: React.FC = () => {
         setContextMenu({ id, x: e.clientX, y: e.clientY });
     };
 
+    const executeClose = (idToClose: string) => {
+        const currentTabs = useEditorStore.getState().tabs;
+        if (currentTabs.length <= 1) {
+            closeTab(idToClose);
+            return;
+        }
+        setClosingTabIds(prev => new Set(prev).add(idToClose));
+        setTimeout(() => {
+            closeTab(idToClose);
+            setClosingTabIds(prev => {
+                const next = new Set(prev);
+                next.delete(idToClose);
+                return next;
+            });
+        }, 150);
+    };
+
     const handleStartClose = async (id: string) => {
         const tab = tabs.find(t => t.id === id);
         if (!tab) return;
@@ -542,13 +560,13 @@ export const TabBar: React.FC = () => {
             if (action === 'save') {
                 const success = await handleSave(id);
                 if (success) {
-                    closeTab(id);
+                    executeClose(id);
                 }
             } else if (action === 'dont_save') {
-                closeTab(id);
+                executeClose(id);
             }
         } else {
-            closeTab(id);
+            executeClose(id);
         }
     };
 
@@ -594,6 +612,7 @@ export const TabBar: React.FC = () => {
                                 const isDragging = tab.id === draggedId;
                                 const isJustImported = tab.id === justImportedId;
                                 const isNewlyAdded = tab.id === newlyAddedId;
+                                const isClosing = closingTabIds.has(tab.id);
                                 const isOwnPlaceholder = isDragging && isFloating && isNearOwnTabBar;
                                 const isFloatingCollapsed = isDragging && isFloating && !isNearOwnTabBar;
                                 const style: React.CSSProperties = isDragging
@@ -628,7 +647,7 @@ export const TabBar: React.FC = () => {
                                                 if (el) tabElementsRef.current.set(tab.id, el);
                                                 else tabElementsRef.current.delete(tab.id);
                                             }}
-                                            className={`tab ${tab.id === activeTabId ? 'active' : ''} ${isDragging ? 'is-dragging' : ''} ${isOwnPlaceholder ? 'is-own-drop-placeholder' : ''} ${isFloatingCollapsed ? 'is-floating-collapsed' : ''} ${isJustImported ? 'is-just-imported' : ''} ${isNewlyAdded ? 'is-newly-added' : ''}`}
+                                            className={`tab ${tab.id === activeTabId ? 'active' : ''} ${isDragging ? 'is-dragging' : ''} ${isOwnPlaceholder ? 'is-own-drop-placeholder' : ''} ${isFloatingCollapsed ? 'is-floating-collapsed' : ''} ${isJustImported ? 'is-just-imported' : ''} ${isNewlyAdded ? 'is-newly-added' : ''} ${isClosing ? 'is-closing' : ''}`}
                                             style={style}
                                             onPointerDown={(e) => handlePointerDown(e, tab.id)}
                                             onClick={() => {
