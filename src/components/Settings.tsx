@@ -158,19 +158,16 @@ export const Settings: React.FC = () => {
                                 <span className="settings-app-name">Notepad</span>
                                 <span className="settings-app-version">v1.0.4</span>
                             </div>
-                            <span className="settings-fork-desc">
-                                Forked from <a href="https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac.git" onClick={(e) => handleOpenLink(e, 'https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac.git')} className="settings-fork-link">Arijit's NotepadMac</a>
-                            </span>
                         </div>
                     </div>
                     <a
-                        href="https://github.com/dangphuc2470"
-                        onClick={(e) => handleOpenLink(e, 'https://github.com/dangphuc2470')}
+                        href="https://github.com/Arijit-gotsomecodes"
+                        onClick={(e) => handleOpenLink(e, 'https://github.com/Arijit-gotsomecodes')}
                         className="settings-credit"
                         title="View author profile on GitHub"
                     >
                         <IconGithub />
-                        <span>Made by dangphuc2470</span>
+                        <span>Made by Arijit</span>
                     </a>
                 </div>
             </div>
