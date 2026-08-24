@@ -16,21 +16,43 @@ import './App.css';
 
 function GhostTabPreview() {
   const [title, setTitle] = React.useState('Untitled');
+  const [width, setWidth] = React.useState<number>(175);
+  const [animKey, setAnimKey] = React.useState(0);
 
   useEffect(() => {
     let unlisten: (() => void) | undefined;
+    let unlistenShow: (() => void) | undefined;
+    let unlistenWidth: (() => void) | undefined;
+
     listen<string>('update-ghost-title', (e) => {
       if (e.payload) setTitle(e.payload);
     }).then((u) => { unlisten = u; });
 
+    listen<number>('update-ghost-width', (e) => {
+      if (e.payload) setWidth(e.payload);
+    }).then((u) => { unlistenWidth = u; });
+
+    // Re-trigger pop-in animation each time ghost is shown again
+    listen('ghost-show', () => {
+      setAnimKey((k) => k + 1);
+    }).then((u) => { unlistenShow = u; });
+
     emit('ghost-ready', {});
 
-    return () => { unlisten?.(); };
+    return () => {
+      unlisten?.();
+      unlistenShow?.();
+      unlistenWidth?.();
+    };
   }, []);
 
   return (
     <div className="ghost-tab-container">
-      <div className="ghost-tab-pill">
+      <div
+        className="ghost-tab-pill"
+        key={animKey}
+        style={{ width: `${width}px` }}
+      >
         <span className="ghost-tab-title">{title}</span>
         <span className="ghost-tab-close">×</span>
       </div>
