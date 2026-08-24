@@ -11,17 +11,80 @@
 
 .tab-list {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   overflow-x: auto;
   overflow-y: hidden;
   gap: 6px;
   padding: 6px 8px 0 8px;
   align-items: stretch;
+  scrollbar-width: none;
+  min-width: 0;
 }
 
 .tab-list::-webkit-scrollbar {
   height: 0;
+  display: none;
 }
+
+.tab-drag-spacer {
+  flex: 1;
+  min-width: 8px;
+  height: 100%;
+}
+
+
+/* Left-edge gradient fade when scrolled right — right edge is handled by the sticky tab-add-group */
+.tab-bar {
+  position: relative;
+}
+
+.tab-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 92px; /* starts where the tab-list begins (after traffic light padding) */
+  width: 32px;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  background: linear-gradient(to right, var(--bg-tab-bar), transparent);
+}
+
+.tab-bar.can-scroll-left::before {
+  opacity: 1;
+}
+
+/* Sticky add-button group — lives OUTSIDE tab-list as a flex sibling in tab-bar.
+   Uses ::before pseudo-element to paint the fade overlay over the right edge of tab-list. */
+.tab-add-group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  padding: 0 2px;
+}
+
+/* Fade overlay: absolutely positioned to the LEFT of the + button, overlapping tab-list */
+.tab-add-group::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--bg-tab-bar));
+  transition: width 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease;
+}
+
+.tab-add-group.show-fade::before {
+  width: 40px;
+  opacity: 1;
+}
+
 
 .tab {
   display: flex;
@@ -55,6 +118,88 @@
 .tab.is-dragging.is-floating-detached::before,
 .tab.is-dragging.is-floating-detached::after,
 .tab-bar.is-dragging-any .tab-divider {
+  opacity: 0 !important;
+}
+
+@keyframes tab-merge-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tab.is-just-imported {
+  animation: tab-merge-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes placeholder-expand {
+  0% {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    opacity: 0;
+  }
+  100% {
+    width: var(--target-tab-width, 160px);
+    min-width: var(--target-tab-width, 160px);
+    max-width: var(--target-tab-width, 160px);
+    opacity: 1;
+  }
+}
+
+.tab.tab-drop-placeholder,
+.tab.is-own-drop-placeholder {
+  background: color-mix(in srgb, var(--accent-color) 20%, transparent) !important;
+  border-radius: 10px 10px 0 0;
+  box-shadow: none !important;
+  border: none !important;
+  transition: width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              min-width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              max-width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              padding 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              margin 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              background 0.15s ease,
+              opacity 0.15s ease !important;
+}
+
+.tab.is-floating-collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  margin-right: -6px !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              min-width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              max-width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              padding 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              margin 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              opacity 0.12s ease !important;
+}
+
+.tab.tab-drop-placeholder {
+  width: var(--target-tab-width, 160px);
+  min-width: var(--target-tab-width, 160px);
+  max-width: var(--target-tab-width, 160px);
+  pointer-events: none;
+  overflow: hidden;
+  animation: placeholder-expand 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.tab.is-own-drop-placeholder .tab-title,
+.tab.is-own-drop-placeholder .tab-close,
+.tab.is-own-drop-placeholder .tab-divider,
+.tab.is-floating-collapsed .tab-title,
+.tab.is-floating-collapsed .tab-close,
+.tab.is-floating-collapsed .tab-divider {
   opacity: 0 !important;
 }
 
