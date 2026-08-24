@@ -31,12 +31,36 @@
   min-width: 120px;
   max-width: 220px;
   height: 100%;
-  cursor: pointer;
+  cursor: default;
   background: transparent;
-  transition: all 0.15s ease;
+  transition: background 0.15s ease, opacity 0.18s ease, box-shadow 0.18s ease;
   position: relative;
   border-radius: 10px 10px 0 0;
   flex-shrink: 0;
+  user-select: none;
+}
+
+.tab.is-dragging {
+  opacity: 0.96;
+  background: var(--bg-tab-active) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.tab.is-dragging.is-floating-detached {
+  opacity: 0.94;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28), 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px !important;
+}
+
+.tab.is-dragging.is-floating-detached::before,
+.tab.is-dragging.is-floating-detached::after,
+.tab-bar.is-dragging-any .tab-divider {
+  opacity: 0 !important;
+}
+
+.tab-list.is-cross-drop-target {
+  background: transparent;
+  outline: none;
 }
 
 .tab:hover {
@@ -206,6 +230,58 @@
 .settings-btn:hover {
   background: var(--bg-tab-hover);
   color: var(--text-primary);
+}
+
+/* Tab Context Menu (macOS Native Style) */
+.tab-context-menu {
+  position: fixed;
+  z-index: 3000;
+  min-width: 180px;
+  background: var(--bg-menu);
+  backdrop-filter: blur(25px) saturate(190%);
+  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  animation: fadeIn 0.1s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-context-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s ease;
+}
+
+.tab-context-item:hover {
+  background: var(--accent-color);
+  color: #ffffff;
+}
+
+.tab-context-item:hover .tab-context-shortcut {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.tab-context-shortcut {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  margin-left: 14px;
+}
+
+.tab-context-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 6px;
 }
 
 .tab-drag-spacer {
