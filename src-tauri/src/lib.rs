@@ -338,6 +338,8 @@ fn try_merge_window(
     app: tauri::AppHandle,
     source_window: String,
     tab_json: String,
+    screen_x: Option<f64>,
+    screen_y: Option<f64>,
 ) -> Result<bool, String> {
     use tauri::{Manager, Emitter};
 
@@ -346,13 +348,14 @@ fn try_merge_window(
         None => return Ok(false),
     };
 
-    let (src_pos, _src_size, src_scale) = match (src_win.outer_position(), src_win.outer_size(), src_win.scale_factor()) {
+    let (src_pos, src_size, src_scale) = match (src_win.outer_position(), src_win.outer_size(), src_win.scale_factor()) {
         (Ok(p), Ok(s), Ok(sc)) => (p, s, sc),
         _ => return Ok(false),
     };
 
     let src_x = (src_pos.x as f64) / src_scale;
     let src_y = (src_pos.y as f64) / src_scale;
+    let src_w = (src_size.width as f64) / src_scale;
 
     for (label, win) in app.webview_windows() {
         if label == source_window || label == "tab-drag-ghost" {
@@ -363,10 +366,17 @@ fn try_merge_window(
             let target_y = (pos.y as f64) / scale;
             let target_w = (size.width as f64) / scale;
 
-            // Check if source window's top-left / tab-bar overlaps with target window's tab-bar
-            if src_x >= (target_x - 120.0) && src_x <= (target_x + target_w + 50.0)
-                && src_y >= (target_y - 30.0) && src_y <= (target_y + 80.0)
-            {
+            let cursor_matched = if let (Some(sx), Some(sy)) = (screen_x, screen_y) {
+                sx >= (target_x - 10.0) && sx <= (target_x + target_w + 10.0) && sy >= (target_y - 20.0) && sy <= (target_y + 80.0)
+            } else {
+                false
+            };
+
+            let overlap_matched = src_x >= (target_x - src_w * 0.85) && src_x <= (target_x + target_w + 50.0)
+                && src_y >= (target_y - 35.0) && src_y <= (target_y + 85.0);
+
+            if cursor_matched || overlap_matched {
+                app.emit("highlight-drop-target", serde_json::json!({ "target_window": null })).ok();
                 win.emit("import-tab", tab_json.clone()).ok();
                 src_win.destroy().ok();
                 return Ok(true);
@@ -374,6 +384,7 @@ fn try_merge_window(
         }
     }
 
+    app.emit("highlight-drop-target", serde_json::json!({ "target_window": null })).ok();
     Ok(false)
 }
 
