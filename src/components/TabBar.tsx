@@ -320,6 +320,7 @@ export const TabBar: React.FC = () => {
         const draggedWidth = tabRect.width;
         const startX = e.clientX;
         const startY = e.clientY;
+        let currentNaturalLeft = startTabLeft;
 
         let isDragging = false;
         let lastPointerX = e.clientX;
@@ -396,6 +397,16 @@ export const TabBar: React.FC = () => {
                     emit('highlight-drop-target', { target_window: null });
                     if (floatingAnimTimerRef.current) clearTimeout(floatingAnimTimerRef.current);
                     setIsFloating(false);
+
+                    // Recalculate currentNaturalLeft accurately upon return from float
+                    const latestTabs = useEditorStore.getState().tabs;
+                    const curIdx = latestTabs.findIndex(t => t.id === id);
+                    if (curIdx <= 0) {
+                        currentNaturalLeft = listRect.left + 8;
+                    } else {
+                        const prevEl = tabElementsRef.current.get(latestTabs[curIdx - 1].id);
+                        currentNaturalLeft = prevEl ? prevEl.getBoundingClientRect().right + 6 : listRect.left + 8;
+                    }
                 } else {
                     // Still floating: use move_drag_ghost (position-only, no overhead)
                     // instead of show_drag_ghost to avoid redundant IPC and title emit every frame
@@ -431,8 +442,8 @@ export const TabBar: React.FC = () => {
             setIsNearOwnTabBar(isNearOwnBar);
 
             // Clamped absolute visual position of the dragged tab on screen
-            const minVisualLeft = listRect.left;
-            const maxVisualLeft = listRect.right - draggedWidth;
+            const minVisualLeft = listRect.left + 8;
+            const maxVisualLeft = listRect.right - draggedWidth - 8;
             const visualLeft = Math.max(minVisualLeft, Math.min(maxVisualLeft, startTabLeft + pointerDelta));
             const visualRight = visualLeft + draggedWidth;
 
@@ -441,23 +452,15 @@ export const TabBar: React.FC = () => {
             const fromIndex = currentTabs.findIndex(t => t.id === id);
             if (fromIndex === -1) return;
 
-            // Calculate natural layout left of fromIndex in DOM (untransformed)
-            let naturalLeft = listRect.left;
-            for (let j = 0; j < fromIndex; j++) {
-                const el = tabElementsRef.current.get(currentTabs[j].id);
-                if (el) naturalLeft += el.getBoundingClientRect().width;
-            }
-
             // Set transform so visual position matches visualLeft 1:1 strictly within the tab bar.
             // Do NOT update while floating: tab is invisible and managed by ghost window.
             if (!isFloatingRef.current) {
-                setDragTranslate(visualLeft - naturalLeft);
+                setDragTranslate(visualLeft - currentNaturalLeft);
             } else {
                 return;
             }
 
-
-            // Check right neighbor: moving right, covers >30% of right neighbor
+            // Check right neighbor: moving right, covers >35% of right neighbor
             if (fromIndex < currentTabs.length - 1 && frameDelta >= 0) {
                 const rightTab = currentTabs[fromIndex + 1];
                 const rightEl = tabElementsRef.current.get(rightTab.id);
@@ -466,20 +469,20 @@ export const TabBar: React.FC = () => {
                     const overlapRight = visualRight - rightRect.left;
                     const hysteresisPassed = lastSwapDirection !== 'left' || Math.abs(moveEvent.clientX - lastSwapX) > 16;
 
-                    if (overlapRight > rightRect.width * 0.3 && hysteresisPassed) {
+                    if (overlapRight > rightRect.width * 0.35 && hysteresisPassed) {
                         lastSwapX = moveEvent.clientX;
                         lastSwapDirection = 'right';
                         // Record neighbor's current position before swap for FLIP
                         flipPendingRef.current.push({ id: rightTab.id, prevLeft: rightRect.left });
-                        const newNaturalLeft = naturalLeft + rightRect.width;
-                        setDragTranslate(visualLeft - newNaturalLeft);
+                        currentNaturalLeft += (rightRect.width + 6);
+                        setDragTranslate(visualLeft - currentNaturalLeft);
                         reorderTabs(fromIndex, fromIndex + 1);
                         return;
                     }
                 }
             }
 
-            // Check left neighbor: moving left, covers >30% of left neighbor
+            // Check left neighbor: moving left, covers >35% of left neighbor
             if (fromIndex > 0 && frameDelta <= 0) {
                 const leftTab = currentTabs[fromIndex - 1];
                 const leftEl = tabElementsRef.current.get(leftTab.id);
@@ -488,13 +491,13 @@ export const TabBar: React.FC = () => {
                     const overlapLeft = leftRect.right - visualLeft;
                     const hysteresisPassed = lastSwapDirection !== 'right' || Math.abs(moveEvent.clientX - lastSwapX) > 16;
 
-                    if (overlapLeft > leftRect.width * 0.3 && hysteresisPassed) {
+                    if (overlapLeft > leftRect.width * 0.35 && hysteresisPassed) {
                         lastSwapX = moveEvent.clientX;
                         lastSwapDirection = 'left';
                         // Record neighbor's current position before swap for FLIP
                         flipPendingRef.current.push({ id: leftTab.id, prevLeft: leftRect.left });
-                        const newNaturalLeft = naturalLeft - leftRect.width;
-                        setDragTranslate(visualLeft - newNaturalLeft);
+                        currentNaturalLeft -= (leftRect.width + 6);
+                        setDragTranslate(visualLeft - currentNaturalLeft);
                         reorderTabs(fromIndex, fromIndex - 1);
                         return;
                     }
