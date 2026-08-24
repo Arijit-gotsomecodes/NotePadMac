@@ -1,22 +1,31 @@
 import React, { useRef, useEffect } from 'react';
 import { useSettingsStore } from '../stores/settingsStore';
+import { openUrl } from '@tauri-apps/plugin-opener';
 import './Settings.css';
 
 // Icons
 const IconBrush = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r="0.5" /><circle cx="17.5" cy="10.5" r="0.5" /><circle cx="8.5" cy="7.5" r="0.5" /><circle cx="6.5" cy="12.5" r="0.5" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z" /></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r="0.5" /><circle cx="17.5" cy="10.5" r="0.5" /><circle cx="8.5" cy="7.5" r="0.5" /><circle cx="6.5" cy="12.5" r="0.5" /><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.555C21.965 6.012 17.461 2 12 2z" /></svg>
 );
 
 const IconType = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="4 7 4 4 20 4 20 7" /><line x1="9" y1="20" x2="15" y2="20" /><line x1="12" y1="4" x2="12" y2="20" /></svg>
 );
 
 const IconWrap = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M3 12h15a3 3 0 1 1 0 6h-4" /><polyline points="16 16 14 18 16 20" /><path d="M3 18h7" /></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18" /><path d="M3 12h15a3 3 0 1 1 0 6h-4" /><polyline points="16 16 14 18 16 20" /><path d="M3 18h7" /></svg>
 );
 
 const IconGithub = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
+);
+
+// Native macOS Unfilled Double Chevron Icon
+const IconDoubleChevron = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="8" height="12" viewBox="0 0 8 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1.5 4.5L4 2L6.5 4.5" />
+        <path d="M1.5 7.5L4 10L6.5 7.5" />
+    </svg>
 );
 
 export const Settings: React.FC = () => {
@@ -35,6 +44,11 @@ export const Settings: React.FC = () => {
         }
     };
 
+    const handleOpenLink = (e: React.MouseEvent, url: string) => {
+        e.preventDefault();
+        openUrl(url).catch(console.error);
+    };
+
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
             if (e.key === 'Escape' && isSettingsOpen) toggleSettings();
@@ -45,50 +59,57 @@ export const Settings: React.FC = () => {
 
     if (!isSettingsOpen) return null;
 
+    const getFontFamilyLabel = (val: string) => {
+        if (val.includes('SF Mono')) return 'Monospace';
+        if (val.includes('-apple-system')) return 'Sans Serif';
+        if (val.includes('Georgia')) return 'Serif';
+        if (val.includes('Courier New')) return 'Courier New';
+        return 'Monospace';
+    };
+
+    const getThemeLabel = (val: string) => {
+        if (val === 'light') return 'Light';
+        if (val === 'dark') return 'Dark';
+        return 'Use system setting';
+    };
+
     return (
         <div className="settings-overlay" ref={overlayRef} onClick={handleOverlayClick}>
             <div className="settings-modal">
                 <div className="settings-header">
                     <span className="settings-title">Settings</span>
-                    <button className="settings-close" onClick={toggleSettings}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    <button className="settings-close" onClick={toggleSettings} title="Close Settings">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>
 
                 <div className="settings-content">
-                    {/* App Theme */}
-                    <div className="settings-section">
+                    {/* Settings Group */}
+                    <div className="settings-group">
+                        {/* App Theme */}
                         <div className="settings-row">
-                            <div className="settings-info">
-                                <div className="settings-icon"><IconBrush /></div>
-                                <div className="settings-label-group">
-                                    <span className="settings-label">App theme</span>
-                                    <span className="settings-desc">Select which app theme to display</span>
-                                </div>
+                            <span className="settings-label">App theme</span>
+                            <div className="settings-select-wrapper">
+                                <select
+                                    className="settings-select"
+                                    value={theme}
+                                    onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
+                                >
+                                    <option value="light">Light</option>
+                                    <option value="dark">Dark</option>
+                                    <option value="system">Use system setting</option>
+                                </select>
+                                <span className="settings-select-label">{getThemeLabel(theme)}</span>
+                                <span className="settings-select-chevron">
+                                    <IconDoubleChevron />
+                                </span>
                             </div>
-                            <select
-                                className="settings-select"
-                                value={theme}
-                                onChange={(e) => setTheme(e.target.value as 'light' | 'dark' | 'system')}
-                            >
-                                <option value="light">Light</option>
-                                <option value="dark">Dark</option>
-                                <option value="system">Use system setting</option>
-                            </select>
                         </div>
-                    </div>
 
-                    {/* Font */}
-                    <div className="settings-section">
+                        {/* Font Family */}
                         <div className="settings-row">
-                            <div className="settings-info">
-                                <div className="settings-icon"><IconType /></div>
-                                <div className="settings-label-group">
-                                    <span className="settings-label">Font</span>
-                                    <span className="settings-desc">Family and size</span>
-                                </div>
-                            </div>
-                            <div className="settings-controls">
+                            <span className="settings-label">Font family</span>
+                            <div className="settings-select-wrapper">
                                 <select
                                     className="settings-select"
                                     value={fontFamily}
@@ -99,32 +120,41 @@ export const Settings: React.FC = () => {
                                     <option value="Georgia, serif">Serif</option>
                                     <option value="Courier New, monospace">Courier New</option>
                                 </select>
+                                <span className="settings-select-label">{getFontFamilyLabel(fontFamily)}</span>
+                                <span className="settings-select-chevron">
+                                    <IconDoubleChevron />
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Font Size */}
+                        <div className="settings-row">
+                            <span className="settings-label">Font size</span>
+                            <div className="settings-select-wrapper">
                                 <select
-                                    className="settings-select settings-select-small"
+                                    className="settings-select"
                                     value={fontSize}
                                     onChange={(e) => setFontSize(parseInt(e.target.value))}
                                 >
                                     {[10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 36, 48].map(s => (
-                                        <option key={s} value={s}>{s}px</option>
+                                        <option key={s} value={s}>{s} px</option>
                                     ))}
                                 </select>
+                                <span className="settings-select-label">{fontSize} px</span>
+                                <span className="settings-select-chevron">
+                                    <IconDoubleChevron />
+                                </span>
                             </div>
                         </div>
-                    </div>
 
-                    {/* Word Wrap */}
-                    <div className="settings-section">
+                        {/* Word Wrap */}
                         <div className="settings-row">
-                            <div className="settings-info">
-                                <div className="settings-icon"><IconWrap /></div>
-                                <div className="settings-label-group">
-                                    <span className="settings-label">Word wrap</span>
-                                    <span className="settings-desc">Wrap long lines of text</span>
-                                </div>
-                            </div>
+                            <span className="settings-label">Word wrap</span>
                             <div
                                 className={`settings-toggle ${wordWrap ? 'active' : ''}`}
                                 onClick={toggleWordWrap}
+                                role="switch"
+                                aria-checked={wordWrap}
                             >
                                 <div className="settings-toggle-handle"></div>
                             </div>
@@ -137,18 +167,23 @@ export const Settings: React.FC = () => {
                     <div className="settings-about">
                         <img src="/logo.svg" alt="Notepad" className="settings-app-icon" />
                         <div className="settings-about-text">
-                            <span className="settings-app-name">Notepad</span>
-                            <span className="settings-app-version">Version 1.0.4</span>
+                            <div className="settings-app-header">
+                                <span className="settings-app-name">Notepad</span>
+                                <span className="settings-app-version">v1.0.4</span>
+                            </div>
+                            <span className="settings-fork-desc">
+                                Forked from <a href="https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac.git" onClick={(e) => handleOpenLink(e, 'https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac.git')} className="settings-fork-link">Arijit's NotepadMac</a>
+                            </span>
                         </div>
                     </div>
                     <a
-                        href="https://github.com/Arijit-gotsomecodes"
-                        target="_blank"
-                        rel="noopener noreferrer"
+                        href="https://github.com/dangphuc2470"
+                        onClick={(e) => handleOpenLink(e, 'https://github.com/dangphuc2470')}
                         className="settings-credit"
+                        title="View author profile on GitHub"
                     >
                         <IconGithub />
-                        <span>Made by Arijit</span>
+                        <span>Made by dangphuc2470</span>
                     </a>
                 </div>
             </div>

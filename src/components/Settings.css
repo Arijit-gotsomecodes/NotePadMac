@@ -1,5 +1,5 @@
 /* ===================================
-   Settings Page - Polished
+   Settings Page - macOS 26 Style
    =================================== */
 
 .settings-overlay {
@@ -8,9 +8,9 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
     z-index: 2000;
     animation: fadeIn 0.15s ease-out;
     display: flex;
@@ -24,21 +24,22 @@
 }
 
 .settings-modal {
-    width: 480px;
-    max-width: 90vw;
-    max-height: 85vh;
+    width: 500px;
+    max-width: 92vw;
+    max-height: 88vh;
     background: var(--bg-editor);
-    border-radius: 12px;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    border-radius: 16px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: slideUp 0.2s cubic-bezier(0.2, 0, 0, 1);
+    animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slideUp {
     from {
-        transform: translateY(16px) scale(0.98);
+        transform: translateY(16px) scale(0.97);
         opacity: 0;
     }
     to {
@@ -51,11 +52,11 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px 16px;
+    padding: 18px 22px 14px;
 }
 
 .settings-title {
-    font-size: 18px;
+    font-size: 17px;
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.02em;
@@ -65,137 +66,171 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: none;
+    background: rgba(0, 0, 0, 0.05);
     border: none;
     color: var(--text-secondary);
     cursor: pointer;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
     transition: all 0.15s ease;
 }
 
+[data-theme='dark'] .settings-close {
+    background: rgba(255, 255, 255, 0.1);
+}
+
 .settings-close:hover {
-    background: var(--bg-hover);
+    background: rgba(0, 0, 0, 0.1);
     color: var(--text-primary);
+}
+
+[data-theme='dark'] .settings-close:hover {
+    background: rgba(255, 255, 255, 0.18);
 }
 
 .settings-content {
     flex: 1;
     overflow-y: auto;
-    padding: 0 24px 16px;
+    padding: 0 22px 18px;
 }
 
-.settings-section {
-    background: var(--bg-tab-bar);
-    border-radius: 10px;
-    margin-bottom: 12px;
+/* macOS 26 Clean Grouped Card without outline */
+.settings-group {
+    background: rgba(0, 0, 0, 0.035);
+    border: none;
+    border-radius: 12px;
     overflow: hidden;
+}
+
+[data-theme='dark'] .settings-group {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .settings-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px;
-    gap: 16px;
+    padding: 8.5px 14px;
+    gap: 14px;
+    position: relative;
 }
 
-.settings-info {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex: 1;
-    min-width: 0;
-}
-
-.settings-icon {
-    color: var(--text-secondary);
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.settings-label-group {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
+/* Inset divider line with padding on both sides */
+.settings-row:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 14px;
+    right: 14px;
+    height: 1px;
+    background: var(--border-color);
 }
 
 .settings-label {
     font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.settings-desc {
-    font-size: 11px;
-    color: var(--text-secondary);
-}
-
-/* Controls */
-.settings-controls {
-    display: flex;
-    gap: 8px;
-    flex-shrink: 0;
-}
-
-.settings-select {
-    background: var(--bg-editor);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
     font-weight: 450;
-    outline: none;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+    user-select: none;
+}
+
+/* macOS Modern Dropdown: Plain Text + Round Chevron Button */
+.settings-select-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
     cursor: pointer;
-    transition: all 0.15s ease;
+    user-select: none;
 }
 
-.settings-select:hover {
-    border-color: var(--text-secondary);
+/* Invisible overlay native select */
+.settings-select {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+    margin: 0;
+    padding: 0;
 }
 
-.settings-select:focus {
-    border-color: var(--accent-color);
+.settings-select-label {
+    font-size: 13px;
+    font-weight: 450;
+    color: var(--text-primary);
+    text-align: right;
+    pointer-events: none;
 }
 
-.settings-select-small {
-    width: 70px;
+.settings-select-chevron {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.07);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-primary);
+    transition: background 0.15s ease, transform 0.1s ease;
+    flex-shrink: 0;
+    pointer-events: none;
 }
 
+[data-theme='dark'] .settings-select-chevron {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.settings-select-wrapper:hover .settings-select-chevron {
+    background: rgba(0, 0, 0, 0.13);
+}
+
+[data-theme='dark'] .settings-select-wrapper:hover .settings-select-chevron {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.settings-select-wrapper:active .settings-select-chevron {
+    transform: scale(0.94);
+}
+
+/* macOS 26 Modern Toggle Switch */
 .settings-toggle {
     position: relative;
-    width: 44px;
-    height: 24px;
-    background: var(--bg-hover);
-    border-radius: 12px;
+    width: 38px;
+    height: 22px;
+    background: rgba(120, 120, 128, 0.2);
+    border-radius: 11px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     flex-shrink: 0;
+}
+
+[data-theme='dark'] .settings-toggle {
+    background: rgba(255, 255, 255, 0.15);
 }
 
 .settings-toggle.active {
-    background: var(--accent-color);
+    background: var(--accent-color, #ff377f);
 }
 
 .settings-toggle-handle {
     position: absolute;
-    top: 3px;
-    left: 3px;
+    top: 2px;
+    left: 2px;
     width: 18px;
     height: 18px;
-    background: white;
+    background: #ffffff;
     border-radius: 50%;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.22);
 }
 
 .settings-toggle.active .settings-toggle-handle {
-    transform: translateX(20px);
+    transform: translateX(16px);
 }
 
 /* Footer / Credits */
@@ -203,27 +238,37 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 24px;
+    padding: 14px 22px;
     border-top: 1px solid var(--border-color);
     background: var(--bg-tab-bar);
+    gap: 12px;
 }
 
 .settings-about {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 10px;
+    min-width: 0;
 }
 
 .settings-app-icon {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 8px;
+    flex-shrink: 0;
 }
 
-.settings-app-info {
+.settings-about-text {
     display: flex;
     flex-direction: column;
     gap: 1px;
+    min-width: 0;
+}
+
+.settings-app-header {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
 }
 
 .settings-app-name {
@@ -237,27 +282,54 @@
     color: var(--text-secondary);
 }
 
+.settings-fork-desc {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.settings-fork-link {
+    color: var(--accent-color, #ff377f);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.settings-fork-link:hover {
+    text-decoration: underline;
+}
+
 .settings-credit {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
     background: var(--bg-editor);
-    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
     text-decoration: none;
-    font-size: 12px;
-    font-weight: 450;
+    font-size: 11.5px;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
     transition: all 0.15s ease;
+    flex-shrink: 0;
 }
 
 .settings-credit:hover {
     background: var(--bg-hover);
-    color: var(--text-primary);
+    border-color: rgba(0, 0, 0, 0.18);
+    transform: translateY(-1px);
+}
+
+[data-theme='dark'] .settings-credit:hover {
+    border-color: rgba(255, 255, 255, 0.22);
 }
 
 .settings-credit svg {
     flex-shrink: 0;
+    color: var(--text-primary);
 }
 
 /* Scrollbar */
