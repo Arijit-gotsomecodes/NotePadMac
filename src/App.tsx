@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { emit, listen } from '@tauri-apps/api/event';
 import { saveTab, openFilePath } from './hooks/useFileOperations';
 import { TabBar } from './components/TabBar';
 import { MenuBar } from './components/MenuBar';
@@ -9,26 +9,78 @@ import { Editor } from './components/Editor';
 import { FindReplace } from './components/FindReplace';
 import { StatusBar } from './components/StatusBar';
 import { Settings } from './components/Settings';
-import { useEditorStore } from './stores/editorStore';
+import { Tab, useEditorStore } from './stores/editorStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useTheme } from './hooks/useTheme';
 import './App.css';
 
+function GhostTabPreview() {
+  const [title, setTitle] = React.useState('Untitled');
+
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
+    listen<string>('update-ghost-title', (e) => {
+      if (e.payload) setTitle(e.payload);
+    }).then((u) => { unlisten = u; });
+
+    emit('ghost-ready', {});
+
+    return () => { unlisten?.(); };
+  }, []);
+
+  return (
+    <div className="ghost-tab-container">
+      <div className="ghost-tab-pill">
+        <span className="ghost-tab-title">{title}</span>
+        <span className="ghost-tab-close">×</span>
+      </div>
+    </div>
+  );
+}
+
 function App() {
+  const isGhost = typeof window !== 'undefined' && window.location.search.includes('ghost=true');
   useKeyboardShortcuts();
   useTheme();
 
-  // Handle files opened via double-click / "Open With" / CLI / drag-and-drop
+  if (isGhost) {
+    return <GhostTabPreview />;
+  }
+
+  // Handle files opened via double-click / "Open With" / CLI / drag-and-drop / Detach Tab / Merge Windows
   useEffect(() => {
     let unlistenOpen: (() => void) | undefined;
+    let unlistenMergeReq: (() => void) | undefined;
+    let unlistenMergeRes: (() => void) | undefined;
 
-    invoke<string | null>('get_cli_file')
-      .then((path) => {
-        if (path) {
-          openFilePath(path);
+    invoke<string | null>('get_window_tab')
+      .then((tabJson) => {
+        if (tabJson) {
+          try {
+            const tab = JSON.parse(tabJson);
+            useEditorStore.getState().initDetachedTab(tab);
+          } catch (e) {
+            console.error('Failed to parse detached tab data:', e);
+          }
+        } else {
+          invoke<string | null>('get_cli_file')
+            .then((path) => {
+              if (path) {
+                openFilePath(path);
+              }
+            })
+            .catch(console.error);
         }
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => {
+        // Show the window now that the DOM and tab content are fully mounted and painted
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            getCurrentWindow().show().catch(() => {});
+          });
+        });
+      });
 
     listen<string>('open-file-path', (event) => {
       if (event.payload) {
@@ -40,8 +92,37 @@ function App() {
       })
       .catch(console.error);
 
+    listen<{ targetWindow: string }>('request-merge-tabs', async (event) => {
+      const myLabel = getCurrentWindow().label;
+      if (event.payload.targetWindow !== myLabel) {
+        const myTabs = useEditorStore.getState().tabs;
+        await emit('provide-merge-tabs', {
+          targetWindow: event.payload.targetWindow,
+          tabs: myTabs,
+        });
+        await getCurrentWindow().destroy();
+      }
+    })
+      .then((u) => {
+        unlistenMergeReq = u;
+      })
+      .catch(console.error);
+
+    listen<{ targetWindow: string; tabs: Tab[] }>('provide-merge-tabs', (event) => {
+      const myLabel = getCurrentWindow().label;
+      if (event.payload.targetWindow === myLabel && event.payload.tabs) {
+        useEditorStore.getState().addMultipleTabs(event.payload.tabs);
+      }
+    })
+      .then((u) => {
+        unlistenMergeRes = u;
+      })
+      .catch(console.error);
+
     return () => {
       unlistenOpen?.();
+      unlistenMergeReq?.();
+      unlistenMergeRes?.();
     };
   }, []);
 
