@@ -24,6 +24,7 @@ export const TabBar: React.FC = () => {
     const [isWindowDimmed, setIsWindowDimmed] = React.useState<boolean>(false);
     const [isNearOwnTabBar, setIsNearOwnTabBar] = React.useState<boolean>(false);
     const [justImportedId, setJustImportedId] = React.useState<string | null>(null);
+    const justImportedIdRef = useRef<string | null>(null);
     const [newlyAddedId, setNewlyAddedId] = React.useState<string | null>(null);
     const [closingTabIds, setClosingTabIds] = React.useState<Set<string>>(new Set());
     const mountedRef = useRef<boolean>(false);
@@ -34,7 +35,7 @@ export const TabBar: React.FC = () => {
     // Stores { id, prevLeft } for tabs that need FLIP animation after next render
     const flipPendingRef = useRef<Array<{ id: string; prevLeft: number }>>([]);
 
-    // Detect newly added tabs for smooth entry expand animation
+    // Detect newly added tabs for smooth entry expand animation (only for + button, never for dropped tabs)
     useEffect(() => {
         if (!mountedRef.current) {
             mountedRef.current = true;
@@ -43,10 +44,12 @@ export const TabBar: React.FC = () => {
         }
         for (const t of tabs) {
             if (!prevTabIdsRef.current.has(t.id)) {
-                setNewlyAddedId(t.id);
-                setTimeout(() => {
-                    setNewlyAddedId(null);
-                }, 180);
+                if (t.id !== justImportedIdRef.current) {
+                    setNewlyAddedId(t.id);
+                    setTimeout(() => {
+                        setNewlyAddedId(null);
+                    }, 180);
+                }
                 break;
             }
         }
@@ -95,6 +98,7 @@ export const TabBar: React.FC = () => {
                 }
 
                 if (!tab || typeof tab !== 'object') return;
+                justImportedIdRef.current = tab.id;
                 setJustImportedId(tab.id);
 
                 // Calculate insert index from local_x (cursor position relative to this window)
@@ -124,7 +128,10 @@ export const TabBar: React.FC = () => {
                 crossDropIndexRef.current = null;
                 isCrossDropTargetRef.current = false;
                 setIsCrossDropTarget(false);
-                setTimeout(() => setJustImportedId(null), 400);
+                setTimeout(() => {
+                    justImportedIdRef.current = null;
+                    setJustImportedId(null);
+                }, 400);
             } catch (err) {
                 console.error('Failed to import tab:', err);
             }
@@ -671,7 +678,7 @@ export const TabBar: React.FC = () => {
                             {tabs.map((tab, index) => {
                                 const isDragging = tab.id === draggedId;
                                 const isJustImported = tab.id === justImportedId;
-                                const isNewlyAdded = tab.id === newlyAddedId;
+                                const isNewlyAdded = tab.id === newlyAddedId && tab.id !== justImportedId;
                                 const isClosing = closingTabIds.has(tab.id);
                                 const isOwnPlaceholder = isDragging && isFloating && isNearOwnTabBar;
                                 const isFloatingCollapsed = isDragging && isFloating && !isNearOwnTabBar;
