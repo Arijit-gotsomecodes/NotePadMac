@@ -81,12 +81,42 @@ export const TabBar: React.FC = () => {
 
         listen<any>('import-tab', (e) => {
             try {
-                const tab = typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload;
+                // Payload can be:
+                // 1. New format: { tab_json: string, local_x: number } from finish_tab_drag
+                // 2. Legacy format: string (tab JSON) from try_merge_window
+                let tab: any;
+                let localX: number | null = null;
+
+                if (e.payload && typeof e.payload === 'object' && e.payload.tab_json) {
+                    tab = typeof e.payload.tab_json === 'string' ? JSON.parse(e.payload.tab_json) : e.payload.tab_json;
+                    localX = typeof e.payload.local_x === 'number' ? e.payload.local_x : null;
+                } else {
+                    tab = typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload;
+                }
+
                 if (!tab || typeof tab !== 'object') return;
                 setJustImportedId(tab.id);
-                const idx = crossDropIndexRef.current;
-                if (idx !== null && idx !== undefined) {
-                    useEditorStore.getState().insertTabAtIndex(tab, idx);
+
+                // Calculate insert index from local_x (cursor position relative to this window)
+                let insertIdx: number | null = null;
+                if (localX !== null) {
+                    const currentTabs = useEditorStore.getState().tabs;
+                    insertIdx = currentTabs.length; // default: append at end
+                    for (let i = 0; i < currentTabs.length; i++) {
+                        const el = tabElementsRef.current.get(currentTabs[i].id);
+                        if (el) {
+                            const rect = el.getBoundingClientRect();
+                            const midX = rect.left + rect.width / 2;
+                            if (localX < midX) {
+                                insertIdx = i;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (insertIdx !== null) {
+                    useEditorStore.getState().insertTabAtIndex(tab, insertIdx);
                 } else {
                     useEditorStore.getState().addMultipleTabs([tab]);
                 }
