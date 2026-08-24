@@ -23,11 +23,33 @@ export const TabBar: React.FC = () => {
     const [isWindowDimmed, setIsWindowDimmed] = React.useState<boolean>(false);
     const [isNearOwnTabBar, setIsNearOwnTabBar] = React.useState<boolean>(false);
     const [justImportedId, setJustImportedId] = React.useState<string | null>(null);
+    const [newlyAddedId, setNewlyAddedId] = React.useState<string | null>(null);
+    const mountedRef = useRef<boolean>(false);
+    const prevTabIdsRef = useRef<Set<string>>(new Set(tabs.map(t => t.id)));
     const floatingAnimTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const windowCountRef = useRef<number>(1);
     const tabElementsRef = useRef<Map<string, HTMLDivElement>>(new Map());
     // Stores { id, prevLeft } for tabs that need FLIP animation after next render
     const flipPendingRef = useRef<Array<{ id: string; prevLeft: number }>>([]);
+
+    // Detect newly added tabs for smooth entry expand animation
+    useEffect(() => {
+        if (!mountedRef.current) {
+            mountedRef.current = true;
+            prevTabIdsRef.current = new Set(tabs.map(t => t.id));
+            return;
+        }
+        for (const t of tabs) {
+            if (!prevTabIdsRef.current.has(t.id)) {
+                setNewlyAddedId(t.id);
+                setTimeout(() => {
+                    setNewlyAddedId(null);
+                }, 180);
+                break;
+            }
+        }
+        prevTabIdsRef.current = new Set(tabs.map(t => t.id));
+    }, [tabs]);
 
     // Run FLIP animation for neighbor tabs after each reorder
     React.useLayoutEffect(() => {
@@ -571,6 +593,7 @@ export const TabBar: React.FC = () => {
                             {tabs.map((tab, index) => {
                                 const isDragging = tab.id === draggedId;
                                 const isJustImported = tab.id === justImportedId;
+                                const isNewlyAdded = tab.id === newlyAddedId;
                                 const isOwnPlaceholder = isDragging && isFloating && isNearOwnTabBar;
                                 const isFloatingCollapsed = isDragging && isFloating && !isNearOwnTabBar;
                                 const style: React.CSSProperties = isDragging
@@ -605,7 +628,7 @@ export const TabBar: React.FC = () => {
                                                 if (el) tabElementsRef.current.set(tab.id, el);
                                                 else tabElementsRef.current.delete(tab.id);
                                             }}
-                                            className={`tab ${tab.id === activeTabId ? 'active' : ''} ${isDragging ? 'is-dragging' : ''} ${isOwnPlaceholder ? 'is-own-drop-placeholder' : ''} ${isFloatingCollapsed ? 'is-floating-collapsed' : ''} ${isJustImported ? 'is-just-imported' : ''}`}
+                                            className={`tab ${tab.id === activeTabId ? 'active' : ''} ${isDragging ? 'is-dragging' : ''} ${isOwnPlaceholder ? 'is-own-drop-placeholder' : ''} ${isFloatingCollapsed ? 'is-floating-collapsed' : ''} ${isJustImported ? 'is-just-imported' : ''} ${isNewlyAdded ? 'is-newly-added' : ''}`}
                                             style={style}
                                             onPointerDown={(e) => handlePointerDown(e, tab.id)}
                                             onClick={() => {
