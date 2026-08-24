@@ -318,7 +318,14 @@ fn finish_tab_drag(
             let logical_w = (size.width as f64) / scale;
 
             if screen_x >= logical_x && screen_x <= (logical_x + logical_w) && screen_y >= (logical_y - 15.0) && screen_y <= (logical_y + 90.0) {
-                win.emit("import-tab", tab_json.clone()).ok();
+                let local_x = screen_x - logical_x;
+                // Send both tab data and cursor position so the target window
+                // can calculate the insert index without relying on crossDropIndexRef
+                let payload = serde_json::json!({
+                    "tab_json": tab_json,
+                    "local_x": local_x,
+                });
+                win.emit("import-tab", payload).ok();
                 return Ok("merged".to_string());
             }
         }
@@ -376,8 +383,17 @@ fn try_merge_window(
                 && src_y >= (target_y - 35.0) && src_y <= (target_y + 85.0);
 
             if cursor_matched || overlap_matched {
+                let local_x = if let Some(sx) = screen_x {
+                    sx - target_x
+                } else {
+                    src_x - target_x
+                };
+                let payload = serde_json::json!({
+                    "tab_json": tab_json,
+                    "local_x": local_x,
+                });
                 app.emit("highlight-drop-target", serde_json::json!({ "target_window": null })).ok();
-                win.emit("import-tab", tab_json.clone()).ok();
+                win.emit("import-tab", payload).ok();
                 src_win.destroy().ok();
                 return Ok(true);
             }
