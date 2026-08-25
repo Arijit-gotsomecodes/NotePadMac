@@ -45,10 +45,9 @@
   --bg-hover: rgba(0, 0, 0, 0.04);
   --text-primary: #1a1a1a;
   --text-secondary: #666666;
-  --border-color: rgba(0, 0, 0, 0.09);
-  --accent-color: #ff377f;
-  --accent-glow: rgba(255, 55, 127, 0.2);
-  --selection-bg: rgba(255, 55, 127, 0.25);
+  --accent-color: #0078d4;
+  --accent-glow: rgba(0, 120, 212, 0.15);
+  --selection-bg: rgba(0, 120, 212, 0.25);
   --selection-text: inherit;
   --scrollbar-thumb: rgba(0, 0, 0, 0.2);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
@@ -91,9 +90,9 @@
   --text-primary: rgba(255, 255, 255, 0.92);
   --text-secondary: rgba(255, 255, 255, 0.5);
   --border-color: rgba(255, 255, 255, 0.08);
-  --accent-color: #ff5599;
-  --accent-glow: rgba(255, 100, 146, 0.2);
-  --selection-bg: rgba(255, 100, 146, 0.3);
+  --accent-color: #60cdff;
+  --accent-glow: rgba(96, 205, 255, 0.15);
+  --selection-bg: rgba(96, 205, 255, 0.3);
   --selection-text: inherit;
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);

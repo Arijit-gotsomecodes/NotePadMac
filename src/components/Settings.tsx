@@ -182,10 +182,8 @@ export const Settings: React.FC = () => {
                     <div className="settings-about">
                         <img src="/logo.svg" alt="Notepad" className="settings-app-icon" />
                         <div className="settings-about-text">
-                            <div className="settings-app-header">
-                                <span className="settings-app-name">Notepad</span>
-                                <span className="settings-app-version">v1.0.4</span>
-                            </div>
+                            <span className="settings-app-name">NotepadMac</span>
+                            <span className="settings-app-version">Version 1.1.0</span>
                         </div>
                     </div>
                     <a

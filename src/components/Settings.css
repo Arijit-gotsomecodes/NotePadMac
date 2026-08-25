@@ -122,7 +122,11 @@
     left: 14px;
     right: 14px;
     height: 1px;
-    background: var(--border-color);
+    background: rgba(0, 0, 0, 0.08);
+}
+
+[data-theme='dark'] .settings-row:not(:last-child)::after {
+    background: rgba(255, 255, 255, 0.09);
 }
 
 .settings-label {
@@ -212,7 +216,8 @@
 }
 
 .settings-toggle.active {
-    background: var(--accent-color, #ff377f);
+    background: var(--accent-color, #0078d4);
+    background: AccentColor;
 }
 
 .settings-toggle-handle {
@@ -289,7 +294,7 @@
 }
 
 .settings-fork-link {
-    color: var(--accent-color, #ff377f);
+    color: var(--accent-color, AccentColor);
     text-decoration: none;
     font-weight: 500;
 }
