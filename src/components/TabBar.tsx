@@ -598,11 +598,23 @@ export const TabBar: React.FC = () => {
 
     const executeClose = (idToClose: string) => {
         const currentTabs = useEditorStore.getState().tabs;
+        const currentActiveId = useEditorStore.getState().activeTabId;
         const { reduceMotion } = useSettingsStore.getState();
         if (currentTabs.length <= 1 || reduceMotion) {
             closeTab(idToClose);
             return;
         }
+
+        // If the closing tab is currently active, seamlessly switch active state to the nearest tab immediately
+        if (currentActiveId === idToClose) {
+            const idx = currentTabs.findIndex(t => t.id === idToClose);
+            const remainingTabs = currentTabs.filter(t => t.id !== idToClose);
+            if (remainingTabs.length > 0) {
+                const newIdx = Math.min(idx, remainingTabs.length - 1);
+                setActiveTab(remainingTabs[newIdx].id);
+            }
+        }
+
         setClosingTabIds(prev => new Set(prev).add(idToClose));
         setTimeout(() => {
             closeTab(idToClose);
@@ -736,7 +748,12 @@ export const TabBar: React.FC = () => {
                                                 title="Close"
                                             >
                                                 {tab.isDirty && <span className="tab-indicator-dirty" />}
-                                                <span className="tab-indicator-close">×</span>
+                                                <span className="tab-indicator-close">
+                                                    <svg width="8.5" height="8.5" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                                                        <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" />
+                                                        <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" />
+                                                    </svg>
+                                                </span>
                                             </button>
                                             <div className="tab-divider" />
                                         </div>
