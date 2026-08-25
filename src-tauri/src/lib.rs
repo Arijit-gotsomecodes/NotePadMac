@@ -68,7 +68,7 @@ fn exit_app(window: tauri::Window) {
 /// Smoothly fades out the native NSWindow alpha (1 -> 0) over ~150ms,
 /// then closes/destroys the window, giving a native-level exit animation.
 #[tauri::command]
-fn fade_close_window(window: tauri::Window) {
+fn fade_close_window(window: tauri::Window, reduce_motion: Option<bool>) {
     use tauri::Manager;
     #[cfg(target_os = "macos")]
     {
@@ -78,9 +78,21 @@ fn fade_close_window(window: tauri::Window) {
             .count();
         let is_last = remaining_count <= 1;
 
+        if reduce_motion.unwrap_or(false) {
+            if is_last {
+                app.exit(0);
+            } else {
+                let _ = window.destroy();
+            }
+            return;
+        }
+
         if let Ok(ns_window_ptr) = window.ns_window() {
             // Convert to usize before the closure so it is Send-safe
             let ns_win_addr = ns_window_ptr as usize;
+            let win_clone = window.clone();
+            let app_clone = app.clone();
+
             window.run_on_main_thread(move || {
                 use objc2::msg_send;
                 use objc2_app_kit::NSAnimationContext;
@@ -100,19 +112,26 @@ fn fade_close_window(window: tauri::Window) {
 
                     NSAnimationContext::endGrouping();
 
-                    // Schedule actual close after animation finishes
+                    // Schedule actual close after animation finishes on the main thread
                     std::thread::spawn(move || {
                         std::thread::sleep(std::time::Duration::from_millis(160));
-                        if is_last {
-                            std::process::exit(0);
-                        } else {
-                            // Order out the window (hides it without process exit)
-                            let ptr = ns_win_addr as *mut objc2::runtime::AnyObject;
-                            let _: () = msg_send![ptr, orderOut: ptr];
-                        }
+                        let app_for_exit = app_clone.clone();
+                        let _ = app_clone.run_on_main_thread(move || {
+                            if is_last {
+                                app_for_exit.exit(0);
+                            } else {
+                                let _ = win_clone.destroy();
+                            }
+                        });
                     });
                 }
             }).ok();
+        } else {
+            if is_last {
+                app.exit(0);
+            } else {
+                let _ = window.destroy();
+            }
         }
     }
     #[cfg(not(target_os = "macos"))]
@@ -293,11 +312,16 @@ fn show_drag_ghost(app: tauri::AppHandle, title: String, x: f64, y: f64, width: 
         {
             use objc2::msg_send;
             if let Ok(ns_ptr) = ghost.as_ref().window().ns_window() {
-                let ns_win: *mut objc2::runtime::AnyObject = ns_ptr as _;
-                unsafe {
-                    let _: () = msg_send![ns_win, setIgnoresMouseEvents: true];
-                    let _: () = msg_send![ns_win, setHasShadow: false];
-                }
+                let ns_win_addr = ns_ptr as usize;
+                ghost.run_on_main_thread(move || {
+                    let ns_win: *mut objc2::runtime::AnyObject = ns_win_addr as _;
+                    if !ns_win.is_null() {
+                        unsafe {
+                            let _: () = msg_send![ns_win, setIgnoresMouseEvents: true];
+                            let _: () = msg_send![ns_win, setHasShadow: false];
+                        }
+                    }
+                }).ok();
             }
         }
     }
@@ -383,10 +407,11 @@ fn finish_tab_drag(
                 // Send both tab data and cursor position so the target window
                 // can calculate the insert index without relying on crossDropIndexRef
                 let payload = serde_json::json!({
+                    "target_window": label,
                     "tab_json": tab_json,
                     "local_x": local_x,
                 });
-                win.emit("import-tab", payload).ok();
+                app.emit("import-tab", payload).ok();
                 return Ok("merged".to_string());
             }
         }
@@ -450,12 +475,13 @@ fn try_merge_window(
                     src_x - target_x
                 };
                 let payload = serde_json::json!({
+                    "target_window": label,
                     "tab_json": tab_json,
                     "local_x": local_x,
                 });
-                win.emit("import-tab", payload).ok();
+                app.emit("import-tab", payload).ok();
                 app.emit("highlight-drop-target", serde_json::json!({ "target_window": null })).ok();
-                src_win.destroy().ok();
+                fade_close_window(src_win.as_ref().window().clone(), None);
                 return Ok(true);
             }
         }
@@ -466,20 +492,22 @@ fn try_merge_window(
 }
 
 #[tauri::command]
-fn merge_all_windows() {
+fn merge_all_windows(app: tauri::AppHandle) {
     #[cfg(target_os = "macos")]
     {
-        use objc2::msg_send;
-        unsafe {
-            let ns_app: *mut objc2::runtime::AnyObject = msg_send![objc2::class!(NSApplication), sharedApplication];
-            if !ns_app.is_null() {
-                let key_win: *mut objc2::runtime::AnyObject = msg_send![ns_app, keyWindow];
-                if !key_win.is_null() {
-                    let nil_obj: *mut objc2::runtime::AnyObject = std::ptr::null_mut();
-                    let _: () = msg_send![key_win, mergeAllWindows: nil_obj];
+        let _ = app.run_on_main_thread(move || {
+            use objc2::msg_send;
+            unsafe {
+                let ns_app: *mut objc2::runtime::AnyObject = msg_send![objc2::class!(NSApplication), sharedApplication];
+                if !ns_app.is_null() {
+                    let key_win: *mut objc2::runtime::AnyObject = msg_send![ns_app, keyWindow];
+                    if !key_win.is_null() {
+                        let nil_obj: *mut objc2::runtime::AnyObject = std::ptr::null_mut();
+                        let _: () = msg_send![key_win, mergeAllWindows: nil_obj];
+                    }
                 }
             }
-        }
+        });
     }
 }
 

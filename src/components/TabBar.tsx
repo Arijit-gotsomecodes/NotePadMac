@@ -35,10 +35,15 @@ export const TabBar: React.FC = () => {
     // Stores { id, prevLeft } for tabs that need FLIP animation after next render
     const flipPendingRef = useRef<Array<{ id: string; prevLeft: number }>>([]);
 
-    // Detect newly added tabs for smooth entry expand animation (only for + button, never for dropped tabs)
+    // Detect newly added tabs for smooth entry expand animation (only for + button, never for detached or initial tabs)
     useEffect(() => {
         if (!mountedRef.current) {
             mountedRef.current = true;
+            prevTabIdsRef.current = new Set(tabs.map(t => t.id));
+            return;
+        }
+        const { reduceMotion } = useSettingsStore.getState();
+        if (reduceMotion || tabs.length <= prevTabIdsRef.current.size) {
             prevTabIdsRef.current = new Set(tabs.map(t => t.id));
             return;
         }
@@ -84,6 +89,12 @@ export const TabBar: React.FC = () => {
 
         listen<any>('import-tab', (e) => {
             try {
+                const myLabel = getCurrentWindow().label;
+                const targetWin = e.payload?.target_window ?? e.payload?.targetWindow ?? null;
+                if (targetWin && targetWin !== myLabel) {
+                    return;
+                }
+
                 // Payload can be:
                 // 1. New format: { tab_json: string, local_x: number } from finish_tab_drag
                 // 2. Legacy format: string (tab JSON) from try_merge_window
@@ -93,11 +104,13 @@ export const TabBar: React.FC = () => {
                 if (e.payload && typeof e.payload === 'object' && e.payload.tab_json) {
                     tab = typeof e.payload.tab_json === 'string' ? JSON.parse(e.payload.tab_json) : e.payload.tab_json;
                     localX = typeof e.payload.local_x === 'number' ? e.payload.local_x : null;
+                } else if (e.payload && typeof e.payload === 'object' && e.payload.id) {
+                    tab = e.payload;
                 } else {
                     tab = typeof e.payload === 'string' ? JSON.parse(e.payload) : e.payload;
                 }
 
-                if (!tab || typeof tab !== 'object') return;
+                if (!tab || typeof tab !== 'object' || !tab.id) return;
                 justImportedIdRef.current = tab.id;
                 setJustImportedId(tab.id);
 
@@ -548,10 +561,10 @@ export const TabBar: React.FC = () => {
                         if (result === 'merged' || result === 'detached') {
                             const remaining = useEditorStore.getState().tabs.filter(t => t.id !== id);
                             if (remaining.length === 0) {
-                                // Native fade-out animation then window close
-                                await invoke('fade_close_window');
+                                const { reduceMotion } = useSettingsStore.getState();
+                                await invoke('fade_close_window', { reduceMotion });
                             } else {
-                                useEditorStore.getState().closeTab(id);
+                                closeTab(id);
                             }
                         }
                         setDraggedId(null);
@@ -601,13 +614,8 @@ export const TabBar: React.FC = () => {
         const currentTabs = useEditorStore.getState().tabs;
         const currentActiveId = useEditorStore.getState().activeTabId;
         const { reduceMotion } = useSettingsStore.getState();
-        if (currentTabs.length <= 1) {
-            if (reduceMotion) {
-                closeTab(idToClose);
-            } else {
-                // Native fade-out animation then window close (via editorStore closeTab -> fade_close_window)
-                closeTab(idToClose);
-            }
+        if (currentTabs.length <= 1 || reduceMotion) {
+            closeTab(idToClose);
             return;
         }
 
@@ -813,8 +821,18 @@ export const TabBar: React.FC = () => {
                     <div
                         className="tab-context-item"
                         onClick={() => {
-                            detachTab(contextMenu.id);
+                            const idToDetach = contextMenu.id;
                             setContextMenu(null);
+                            const currentTabs = useEditorStore.getState().tabs;
+                            if (currentTabs.length > 1) {
+                                const tab = currentTabs.find(t => t.id === idToDetach);
+                                if (tab) {
+                                    invoke('detach_tab', { tabJson: JSON.stringify(tab) }).catch(console.error);
+                                }
+                                executeClose(idToDetach);
+                            } else {
+                                detachTab(idToDetach);
+                            }
                         }}
                     >
                         <span>Move to New Window</span>

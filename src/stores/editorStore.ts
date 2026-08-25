@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { emit } from '@tauri-apps/api/event';
+import { useSettingsStore } from './settingsStore';
 
 export interface Tab {
   id: string;
@@ -99,8 +100,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newTabs = state.tabs.filter((t) => t.id !== id);
 
     if (newTabs.length === 0) {
-      // Last tab closed -> native fade-out animation then exit
-      invoke('fade_close_window');
+      const { reduceMotion } = useSettingsStore.getState();
+      if (reduceMotion) {
+        invoke('exit_app');
+      } else {
+        invoke('fade_close_window');
+      }
       return;
     } else {
       let newActive = state.activeTabId;
@@ -346,10 +351,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const freshTab = createDefaultTab();
         set({ tabs: [freshTab], activeTabId: freshTab.id });
       } else {
+        const idx = state.tabs.findIndex((t) => t.id === id);
         const remaining = state.tabs.filter((t) => t.id !== id);
         let newActive = state.activeTabId;
         if (state.activeTabId === id) {
-          newActive = remaining[0].id;
+          const newIdx = Math.min(idx, remaining.length - 1);
+          newActive = remaining[newIdx].id;
         }
         set({ tabs: remaining, activeTabId: newActive });
       }

@@ -195,7 +195,8 @@ body {
   pointer-events: none;
 }
 
-body.reduce-motion .app {
+.reduce-motion .app,
+.reduce-motion .app.is-window-closing {
   animation: none !important;
 }
 

@@ -118,8 +118,7 @@
 }
 
 .tab.is-dragging.is-floating-detached::before,
-.tab.is-dragging.is-floating-detached::after,
-.tab-bar.is-dragging-any .tab-divider {
+.tab.is-dragging.is-floating-detached::after {
   opacity: 0 !important;
 }
 
@@ -155,6 +154,7 @@
     min-width: 120px;
     padding-left: 14px;
     padding-right: 14px;
+    margin-right: 0;
     opacity: 1;
     transform: scale(1);
   }
@@ -163,7 +163,7 @@
     min-width: 0;
     padding-left: 0;
     padding-right: 0;
-    margin: 0;
+    margin-right: -6px;
     opacity: 0;
     transform: scale(0.92);
   }
@@ -238,7 +238,10 @@
 .tab.is-own-drop-placeholder .tab-divider,
 .tab.is-floating-collapsed .tab-title,
 .tab.is-floating-collapsed .tab-close,
-.tab.is-floating-collapsed .tab-divider {
+.tab.is-floating-collapsed .tab-divider,
+.tab.is-closing .tab-title,
+.tab.is-closing .tab-close,
+.tab.is-closing .tab-divider {
   opacity: 0 !important;
 }
 
@@ -269,15 +272,16 @@
   background: rgba(255, 255, 255, 0.16);
 }
 
-/* Hide divider when tab is active or hovered */
-.tab.active .tab-divider,
-.tab:hover .tab-divider {
+/* Hide divider when tab is active, hovered, or closing */
+.tab.active:not(.is-floating-collapsed) .tab-divider,
+.tab:hover:not(.is-floating-collapsed) .tab-divider,
+.tab.is-closing .tab-divider {
   opacity: 0;
 }
 
 /* Hide divider on the tab immediately before an active or hovered tab */
-.tab:has(+ .tab.active) .tab-divider,
-.tab:has(+ .tab:hover) .tab-divider {
+.tab:has(+ .tab.active:not(.is-floating-collapsed):not(.is-closing)) .tab-divider,
+.tab:has(+ .tab:hover:not(.is-floating-collapsed):not(.is-closing)) .tab-divider {
   opacity: 0;
 }
 

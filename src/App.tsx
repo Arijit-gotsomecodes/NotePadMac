@@ -10,6 +10,7 @@ import { FindReplace } from './components/FindReplace';
 import { StatusBar } from './components/StatusBar';
 import { Settings } from './components/Settings';
 import { Tab, useEditorStore } from './stores/editorStore';
+import { useSettingsStore } from './stores/settingsStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useTheme } from './hooks/useTheme';
 import './App.css';
@@ -168,10 +169,12 @@ function App() {
 
         try {
           const dirtyTabs = useEditorStore.getState().tabs.filter((t) => t.isDirty);
+          const { reduceMotion } = useSettingsStore.getState();
+          const closeCmd = reduceMotion ? 'exit_app' : 'fade_close_window';
 
           if (dirtyTabs.length === 0) {
-            // No unsaved changes -> native fade exit
-            await invoke('fade_close_window');
+            // No unsaved changes -> exit window
+            await invoke(closeCmd);
             return;
           }
 
@@ -196,8 +199,8 @@ function App() {
             // 'dont_save' -> continue to next dirty tab
           }
 
-          // All dirty tabs resolved -> native fade exit
-          await invoke('fade_close_window');
+          // All dirty tabs resolved -> exit window
+          await invoke(closeCmd);
         } catch (err) {
           console.error('Close guard error:', err);
           isClosing = false;

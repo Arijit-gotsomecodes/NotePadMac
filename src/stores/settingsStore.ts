@@ -38,13 +38,20 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     fontSize: 14,
     showFindReplace: false,
     findReplaceMode: 'find',
-    reduceMotion: false,
+    reduceMotion: typeof localStorage !== 'undefined' ? localStorage.getItem('notepad_reducemotion') === 'true' : false,
     autoSave: typeof localStorage !== 'undefined' ? localStorage.getItem('notepad_autosave') === 'true' : false,
     isSettingsOpen: false,
 
     setTheme: (theme) => set({ theme }),
     toggleWordWrap: () => set((s) => ({ wordWrap: !s.wordWrap })),
-    toggleReduceMotion: () => set((s) => ({ reduceMotion: !s.reduceMotion })),
+    toggleReduceMotion: () =>
+        set((s) => {
+            const next = !s.reduceMotion;
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem('notepad_reducemotion', String(next));
+            }
+            return { reduceMotion: next };
+        }),
     toggleAutoSave: () =>
         set((s) => {
             const next = !s.autoSave;
