@@ -143,7 +143,8 @@ export const MenuBar: React.FC = () => {
     };
 
     const fileMenu: MenuItem[] = [
-        { label: 'New Tab', shortcut: '⌘N', icon: <IconFilePlus />, action: handleNewTab },
+        { label: 'New Tab', shortcut: '⌘T', icon: <IconFilePlus />, action: handleNewTab },
+        { label: 'Reopen Closed Tab', shortcut: '⇧⌘T', icon: <IconRotateCcw />, action: () => { setOpenMenu(null); editorStore.reopenClosedTab(); } },
         { label: 'New Window', shortcut: '⇧⌘N', icon: <IconExternalLink />, action: () => { setOpenMenu(null); const tab = editorStore.getActiveTab(); if (tab) editorStore.detachTab(tab.id); } },
         { label: 'Open...', shortcut: '⌘O', icon: <IconFolderOpen />, action: onOpen },
         { label: 'Save', shortcut: '⌘S', icon: <IconSave />, action: onSave },

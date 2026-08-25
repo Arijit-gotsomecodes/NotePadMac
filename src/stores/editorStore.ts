@@ -23,12 +23,14 @@ interface EditorState {
   tabs: Tab[];
   activeTabId: string;
   sessionSaveTimer: ReturnType<typeof setTimeout> | null;
+  closedTabsHistory: Tab[];
 
   // Actions
   addTab: (tab?: Partial<Tab>) => void;
   addMultipleTabs: (newTabs: Tab[]) => void;
   insertTabAtIndex: (tab: Tab, index: number) => void;
   closeTab: (id: string) => void;
+  reopenClosedTab: () => void;
   setActiveTab: (id: string) => void;
   updateContent: (id: string, content: string) => void;
   updateCursor: (id: string, line: number, col: number) => void;
@@ -82,6 +84,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   tabs: [initialTab],
   activeTabId: initialTab.id,
   sessionSaveTimer: null,
+  closedTabsHistory: [],
 
   addTab: (overrides) => {
     const newTab = createDefaultTab(overrides);
@@ -94,10 +97,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   closeTab: (id) => {
     const state = get();
+    const closingTab = state.tabs.find((t) => t.id === id);
     const idx = state.tabs.findIndex((t) => t.id === id);
-    if (idx === -1) return;
+    if (idx === -1 || !closingTab) return;
 
     const newTabs = state.tabs.filter((t) => t.id !== id);
+    const newClosedHistory = [...state.closedTabsHistory.slice(-29), closingTab];
 
     if (newTabs.length === 0) {
       const { reduceMotion } = useSettingsStore.getState();
@@ -114,8 +119,28 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const newIdx = Math.min(idx, newTabs.length - 1);
         newActive = newTabs[newIdx].id;
       }
-      set({ tabs: newTabs, activeTabId: newActive });
+      set({ tabs: newTabs, activeTabId: newActive, closedTabsHistory: newClosedHistory });
     }
+    get().saveSession();
+  },
+
+  reopenClosedTab: () => {
+    const state = get();
+    if (state.closedTabsHistory.length === 0) return;
+    const lastTab = state.closedTabsHistory[state.closedTabsHistory.length - 1];
+    const newHistory = state.closedTabsHistory.slice(0, -1);
+
+    // Ensure unique ID if restoring
+    const existingIds = new Set(state.tabs.map((t) => t.id));
+    const restoredTab: Tab = existingIds.has(lastTab.id)
+      ? { ...lastTab, id: generateId() }
+      : { ...lastTab };
+
+    set((s) => ({
+      tabs: [...s.tabs, restoredTab],
+      activeTabId: restoredTab.id,
+      closedTabsHistory: newHistory,
+    }));
     get().saveSession();
   },
 
@@ -384,9 +409,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   closeOtherTabs: (id) => {
-    const tab = get().tabs.find((t) => t.id === id);
+    const state = get();
+    const tab = state.tabs.find((t) => t.id === id);
     if (!tab) return;
-    set({ tabs: [tab], activeTabId: tab.id });
+    const closingTabs = state.tabs.filter((t) => t.id !== id);
+    const newClosedHistory = [...state.closedTabsHistory.slice(-(30 - closingTabs.length)), ...closingTabs];
+    set({ tabs: [tab], activeTabId: tab.id, closedTabsHistory: newClosedHistory });
     get().saveSession();
   },
 
