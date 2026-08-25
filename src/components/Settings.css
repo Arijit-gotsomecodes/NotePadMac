@@ -219,7 +219,6 @@
 
 .settings-toggle.active {
     background: var(--accent-color, #0078d4);
-    background: AccentColor;
 }
 
 .settings-toggle-handle {
@@ -296,7 +295,7 @@
 }
 
 .settings-fork-link {
-    color: var(--accent-color, AccentColor);
+    color: var(--accent-color, #0078d4);
     text-decoration: none;
     font-weight: 500;
 }

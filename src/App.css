@@ -186,8 +186,12 @@ body {
   background: var(--bg-app);
   box-shadow: inset 0 0 0 1px var(--border-color);
   transition: opacity 0.22s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
-  animation: window-reveal-entry 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
   transform-origin: center center;
+}
+
+/* Only play reveal animation on first mount (before is-revealed is added) */
+.app:not(.is-revealed) {
+  animation: window-reveal-entry 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }
 
 .app.is-window-closing {
@@ -195,7 +199,7 @@ body {
   pointer-events: none;
 }
 
-.reduce-motion .app,
+.reduce-motion .app:not(.is-revealed),
 .reduce-motion .app.is-window-closing {
   animation: none !important;
 }

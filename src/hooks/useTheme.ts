@@ -9,6 +9,9 @@ export const useTheme = () => {
     }, []);
 
     useEffect(() => {
+        // Mark all existing .app elements as revealed BEFORE toggling reduce-motion
+        // so the window-reveal-entry animation never re-triggers on existing windows
+        document.querySelectorAll('.app').forEach((el) => el.classList.add('is-revealed'));
         document.documentElement.classList.toggle('reduce-motion', reduceMotion);
     }, [reduceMotion]);
 

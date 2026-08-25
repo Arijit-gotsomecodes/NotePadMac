@@ -4,7 +4,6 @@ mod session;
 
 use file_ops::{read_file, write_file};
 use session::{load_session, save_session};
-use tauri::Manager;
 
 #[tauri::command]
 fn prompt_save_dialog(
@@ -201,6 +200,168 @@ fn get_cli_file() -> Option<String> {
     }
     None
 }
+
+/// Helper to extract current macOS system accent color on the main thread
+#[cfg(target_os = "macos")]
+fn get_current_accent_color() -> Option<String> {
+    use objc2_app_kit::{NSColor, NSColorSpace};
+    use objc2_foundation::{NSString, NSUserDefaults};
+    use objc2::msg_send;
+
+    unsafe {
+        let accent = NSColor::controlAccentColor();
+        let srgb_space = NSColorSpace::sRGBColorSpace();
+        let color_srgb: *mut objc2::runtime::AnyObject = msg_send![&*accent, colorUsingColorSpace: &*srgb_space];
+        if !color_srgb.is_null() {
+            let r: f64 = msg_send![color_srgb, redComponent];
+            let g: f64 = msg_send![color_srgb, greenComponent];
+            let b: f64 = msg_send![color_srgb, blueComponent];
+            return Some(format!(
+                "#{:02x}{:02x}{:02x}",
+                (r * 255.0).round() as u8,
+                (g * 255.0).round() as u8,
+                (b * 255.0).round() as u8,
+            ));
+        }
+
+        // Fallback to standard AppleAccentColor system defaults
+        let defaults = NSUserDefaults::standardUserDefaults();
+        let key = NSString::from_str("AppleAccentColor");
+        let val: isize = msg_send![&*defaults, integerForKey: &*key];
+        let hex = match val {
+            0 => "#ff3b30", // Red
+            1 => "#ff9500", // Orange
+            2 => "#ffcc00", // Yellow
+            3 => "#34c759", // Green
+            4 => "#007aff", // Blue
+            5 => "#af52de", // Purple
+            6 => "#f74f9e", // Pink
+            _ => "#007aff",
+        };
+        Some(hex.to_string())
+    }
+}
+
+/// Returns the macOS system accent color as a hex string (e.g. "#f74f9e").
+#[tauri::command]
+fn get_accent_color(app: tauri::AppHandle) -> Option<String> {
+    #[cfg(target_os = "macos")]
+    {
+        let (tx, rx) = std::sync::mpsc::channel();
+        let _ = app.run_on_main_thread(move || {
+            let _ = tx.send(get_current_accent_color());
+        });
+        rx.recv().unwrap_or(None)
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        None
+    }
+}
+
+/// 100% Event-driven distributed + local notification observer for system color changes (zero polling, zero CPU).
+#[cfg(target_os = "macos")]
+mod accent_observer {
+    use std::ffi::c_void;
+    use std::sync::Mutex;
+    use tauri::{AppHandle, Emitter, Manager};
+
+    type CFNotificationCenterRef = *mut c_void;
+    type CFStringRef = *const c_void;
+    type CFDictionaryRef = *const c_void;
+    type CFNotificationCallback = extern "C" fn(
+        center: CFNotificationCenterRef,
+        observer: *mut c_void,
+        name: CFStringRef,
+        object: *const c_void,
+        user_info: CFDictionaryRef,
+    );
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFNotificationCenterGetDistributedCenter() -> CFNotificationCenterRef;
+        fn CFNotificationCenterGetLocalCenter() -> CFNotificationCenterRef;
+        fn CFNotificationCenterAddObserver(
+            center: CFNotificationCenterRef,
+            observer: *const c_void,
+            callBack: CFNotificationCallback,
+            name: CFStringRef,
+            object: *const c_void,
+            suspensionBehavior: isize,
+        );
+        fn CFStringCreateWithCString(
+            alloc: *const c_void,
+            c_str: *const std::ffi::c_char,
+            encoding: u32,
+        ) -> CFStringRef;
+        fn CFRelease(cf: *const c_void);
+    }
+
+    static GLOBAL_APP_HANDLE: Mutex<Option<AppHandle>> = Mutex::new(None);
+
+    extern "C" fn on_system_color_changed(
+        _center: CFNotificationCenterRef,
+        _observer: *mut c_void,
+        _name: CFStringRef,
+        _object: *const c_void,
+        _user_info: CFDictionaryRef,
+    ) {
+        if let Ok(guard) = GLOBAL_APP_HANDLE.lock() {
+            if let Some(app) = guard.as_ref() {
+                let app_clone = app.clone();
+                let _ = app.run_on_main_thread(move || {
+                    if let Some(hex) = super::get_current_accent_color() {
+                        let _ = app_clone.emit("accent-color-changed", hex.clone());
+                        for (_, win) in app_clone.webview_windows() {
+                            let _ = win.emit("accent-color-changed", hex.clone());
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    fn add_obs(center: CFNotificationCenterRef, notif_name: &str, behavior: isize) {
+        unsafe {
+            if !center.is_null() {
+                let c_name = std::ffi::CString::new(notif_name).unwrap();
+                let cf_name = CFStringCreateWithCString(std::ptr::null(), c_name.as_ptr(), 0x08000100 /* kCFStringEncodingUTF8 */);
+                if !cf_name.is_null() {
+                    CFNotificationCenterAddObserver(
+                        center,
+                        std::ptr::null(),
+                        on_system_color_changed,
+                        cf_name,
+                        std::ptr::null(),
+                        behavior,
+                    );
+                    CFRelease(cf_name);
+                }
+            }
+        }
+    }
+
+    pub fn start_listening(app: AppHandle) {
+        if let Ok(mut guard) = GLOBAL_APP_HANDLE.lock() {
+            *guard = Some(app);
+        }
+
+        // 1. Distributed notifications (sent across applications when System Settings changes)
+        let dist_center = unsafe { CFNotificationCenterGetDistributedCenter() };
+        add_obs(dist_center, "AppleColorPreferencesChangedNotification", 4);
+        add_obs(dist_center, "AppleAquaColorVariantChanged", 4);
+        add_obs(dist_center, "AppleInterfaceThemeChangedNotification", 4);
+
+        // 2. Local notifications (AppKit internal system color change broadcasts)
+        let local_center = unsafe { CFNotificationCenterGetLocalCenter() };
+        add_obs(local_center, "NSSystemColorsDidChangeNotification", 0);
+        add_obs(local_center, "NSControlTintDidChangeNotification", 0);
+    }
+}
+
+
+
 
 #[tauri::command]
 fn detach_tab(app: tauri::AppHandle, tab_json: String, x: Option<f64>, y: Option<f64>) -> Result<(), String> {
@@ -547,6 +708,7 @@ pub fn run() {
             try_merge_window,
             merge_all_windows,
             get_window_count,
+            get_accent_color,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
@@ -558,9 +720,13 @@ pub fn run() {
                         adjust_traffic_lights(&w);
                     }).ok();
                 }
+
+                // Watch for macOS accent color changes via NSDistributedNotificationCenter (100% event-driven, 0% CPU)
+                accent_observer::start_listening(app.handle().clone());
             }
             Ok(())
         })
+
         .on_window_event(|window, event| {
             #[cfg(target_os = "macos")]
             {

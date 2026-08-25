@@ -150,6 +150,43 @@ function App() {
     };
   }, []);
 
+  // Sync macOS system accent color -> CSS --accent-color variable
+  useEffect(() => {
+    const applyAccentColor = (hex: string) => {
+      const root = document.documentElement;
+      root.style.setProperty('--accent-color', hex);
+      // Derive a lighter glow for dark mode and selection bg
+      root.style.setProperty('--accent-glow', `${hex}26`);
+      root.style.setProperty('--selection-bg', `${hex}40`);
+    };
+
+    const refresh = () => {
+      invoke<string | null>('get_accent_color')
+        .then((hex) => {
+          if (hex) applyAccentColor(hex);
+        })
+        .catch(console.error);
+    };
+
+    refresh();
+
+    // Re-fetch when macOS notifies accent color changed
+    let unlisten: (() => void) | undefined;
+    listen<string>('accent-color-changed', (e) => {
+      if (e.payload) applyAccentColor(e.payload);
+    }).then((u) => { unlisten = u; }).catch(console.error);
+
+    // Refresh instantly when user focuses back into window
+    window.addEventListener('focus', refresh);
+
+    return () => {
+      unlisten?.();
+      window.removeEventListener('focus', refresh);
+    };
+  }, []);
+
+
+
   // Install close guard EXACTLY ONCE on mount.
   // Important: always call event.preventDefault() first (async early-return is
   // unreliable in Tauri v2), then manually call destroy() when ready to close.
@@ -221,6 +258,14 @@ function App() {
       cancelled = true;
       unlisten?.();
     };
+  }, []);
+
+  // Mark .app as revealed after open animation so toggling reduce-motion never re-triggers it
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      document.querySelector('.app')?.classList.add('is-revealed');
+    }, 250);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
