@@ -47,7 +47,8 @@
 }
 
 .editor-textarea::-webkit-scrollbar {
-    width: 8px;
+    width: 11px;
+    height: 11px;
 }
 
 .editor-textarea::-webkit-scrollbar-track {
@@ -57,12 +58,13 @@
 .editor-textarea::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
     border-radius: 100px;
-    border: 2px solid transparent;
+    border: 2.5px solid transparent;
     background-clip: content-box;
 }
 
 .editor-textarea::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
+    border: 2px solid transparent;
     background-clip: content-box;
 }
 
