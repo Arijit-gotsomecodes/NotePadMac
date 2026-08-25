@@ -347,7 +347,7 @@
   transition: background 0.15s ease;
 }
 
-/* Close X Icon: hidden by default on unhovered tabs */
+/* Close X Icon: shown on active tab by default (when clean) or on hover */
 .tab-close .tab-indicator-close {
   display: none;
   align-items: center;
@@ -357,11 +357,17 @@
   color: var(--text-secondary);
 }
 
+.tab.active .tab-close .tab-indicator-close,
+.tab:hover .tab-close .tab-indicator-close,
+.tab-close:hover .tab-indicator-close {
+  display: flex;
+}
+
 .tab-close .tab-indicator-close svg {
   display: block;
 }
 
-/* Dirty Dot: shown ONLY when tab is dirty and not hovered */
+/* Dirty Dot: shown when tab is dirty and not hovered */
 .tab-close .tab-indicator-dirty {
   display: block;
   width: 7px;
@@ -371,15 +377,22 @@
   pointer-events: none;
 }
 
-/* When hovering the tab/button or on active tab: HIDE dirty dot, SHOW close X icon */
+/* When dirty and NOT hovered: show dirty dot and cover/hide close X (even on active tab) */
+.tab-close.is-dirty:not(:hover) .tab-indicator-dirty {
+  display: block !important;
+}
+
+.tab:not(:hover) .tab-close.is-dirty .tab-indicator-close {
+  display: none !important;
+}
+
+/* When hovering the tab or the close button: hide dirty dot, reveal close X */
 .tab:hover .tab-close .tab-indicator-dirty,
-.tab.active .tab-close .tab-indicator-dirty,
 .tab-close:hover .tab-indicator-dirty {
   display: none !important;
 }
 
 .tab:hover .tab-close .tab-indicator-close,
-.tab.active .tab-close .tab-indicator-close,
 .tab-close:hover .tab-indicator-close {
   display: flex !important;
   align-items: center;
