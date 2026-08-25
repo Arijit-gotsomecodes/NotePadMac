@@ -79,6 +79,7 @@ fn show_window_with_fade(window: tauri::Window, reduce_motion: Option<bool>) {
 
         if let Ok(ns_window_ptr) = window.ns_window() {
             let ns_win_addr = ns_window_ptr as usize;
+            let win_clone = window.clone();
             window.run_on_main_thread(move || {
                 use objc2::msg_send;
                 use objc2_app_kit::NSAnimationContext;
@@ -93,6 +94,9 @@ fn show_window_with_fade(window: tauri::Window, reduce_motion: Option<bool>) {
                     // Show the window (entire NSWindow, including traffic lights)
                     let nil: *mut objc2::runtime::AnyObject = std::ptr::null_mut();
                     let _: () = msg_send![ns_win, makeKeyAndOrderFront: nil];
+
+                    // Ensure traffic lights are aligned after makeKeyAndOrderFront
+                    adjust_traffic_lights(&win_clone);
 
                     // Animate the whole window alpha 0 -> 1 (~160ms)
                     NSAnimationContext::beginGrouping();

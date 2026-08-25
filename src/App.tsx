@@ -95,12 +95,15 @@ function App() {
       } catch (err) {
         console.error('Failed to initialize window data:', err);
       } finally {
-        // Show the window now that the DOM and tab content are fully mounted and painted.
-        // Use show_window_with_fade to animate the entire native NSWindow (including
-        // traffic lights) from alpha=0 -> 1, so nothing floats on a transparent bg.
-        const { reduceMotion } = useSettingsStore.getState();
-        invoke('show_window_with_fade', { reduceMotion }).catch(() => {
-          getCurrentWindow().show().catch(() => {});
+        // Wait 2 animation frames so React DOM has committed and WebKit has painted
+        // the background before fading the native window into view
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            const { reduceMotion } = useSettingsStore.getState();
+            invoke('show_window_with_fade', { reduceMotion }).catch(() => {
+              getCurrentWindow().show().catch(() => {});
+            });
+          });
         });
       }
     };
