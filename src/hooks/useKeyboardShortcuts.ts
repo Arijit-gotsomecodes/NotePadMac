@@ -78,8 +78,7 @@ export const useKeyboardShortcuts = () => {
 
                 case 'w':
                     e.preventDefault();
-                    const tab = editorStore.getActiveTab();
-                    if (tab) editorStore.closeTab(tab.id);
+                    window.dispatchEvent(new CustomEvent('request-close-tab'));
                     break;
 
                 case 'f':

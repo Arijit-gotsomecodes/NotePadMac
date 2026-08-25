@@ -25,10 +25,32 @@ export const Settings: React.FC = () => {
         autoSave, toggleAutoSave
     } = useSettingsStore();
 
+    const [isRendered, setIsRendered] = React.useState(isSettingsOpen);
+    const [isClosing, setIsClosing] = React.useState(false);
     const overlayRef = useRef<HTMLDivElement>(null);
 
+    useEffect(() => {
+        if (isSettingsOpen) {
+            setIsRendered(true);
+            setIsClosing(false);
+        } else if (isRendered) {
+            const { reduceMotion: rm } = useSettingsStore.getState();
+            if (rm) {
+                setIsRendered(false);
+                setIsClosing(false);
+            } else {
+                setIsClosing(true);
+                const timer = setTimeout(() => {
+                    setIsRendered(false);
+                    setIsClosing(false);
+                }, 150);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [isSettingsOpen, isRendered]);
+
     const handleOverlayClick = (e: React.MouseEvent) => {
-        if (e.target === overlayRef.current) {
+        if (e.target === overlayRef.current && !isClosing) {
             toggleSettings();
         }
     };
@@ -40,13 +62,13 @@ export const Settings: React.FC = () => {
 
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && isSettingsOpen) toggleSettings();
+            if (e.key === 'Escape' && isSettingsOpen && !isClosing) toggleSettings();
         };
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
-    }, [isSettingsOpen, toggleSettings]);
+    }, [isSettingsOpen, isClosing, toggleSettings]);
 
-    if (!isSettingsOpen) return null;
+    if (!isRendered) return null;
 
     const getFontFamilyLabel = (val: string) => {
         if (val.includes('SF Mono')) return 'Monospace';
@@ -63,11 +85,11 @@ export const Settings: React.FC = () => {
     };
 
     return (
-        <div className="settings-overlay" ref={overlayRef} onClick={handleOverlayClick}>
-            <div className="settings-modal">
+        <div className={`settings-overlay ${isClosing ? 'is-closing' : ''}`} ref={overlayRef} onClick={handleOverlayClick}>
+            <div className={`settings-modal ${isClosing ? 'is-closing' : ''}`}>
                 <div className="settings-header">
                     <span className="settings-title">Settings</span>
-                    <button className="settings-close" onClick={toggleSettings} title="Close Settings">
+                    <button className="settings-close" onClick={toggleSettings} title="Close Settings" disabled={isClosing}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                     </button>
                 </div>

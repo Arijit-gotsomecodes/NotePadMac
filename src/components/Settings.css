@@ -23,6 +23,16 @@
     to { opacity: 1; }
 }
 
+.settings-overlay.is-closing {
+    animation: fadeOut 0.15s cubic-bezier(0.2, 0, 0, 1) forwards;
+    pointer-events: none;
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
 .settings-modal {
     width: 500px;
     max-width: 92vw;
@@ -34,7 +44,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: slideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    animation: slideUp 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes slideUp {
@@ -45,6 +55,21 @@
     to {
         transform: translateY(0) scale(1);
         opacity: 1;
+    }
+}
+
+.settings-modal.is-closing {
+    animation: slideDown 0.15s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    to {
+        transform: translateY(12px) scale(0.97);
+        opacity: 0;
     }
 }
 

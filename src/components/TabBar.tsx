@@ -664,6 +664,21 @@ export const TabBar: React.FC = () => {
         }
     };
 
+    // Listen for close-tab requests from Cmd+W shortcut and MenuBar
+    useEffect(() => {
+        const handleRequestClose = (e: Event) => {
+            const customEvent = e as CustomEvent<{ id?: string }>;
+            const targetId = customEvent.detail?.id || useEditorStore.getState().activeTabId;
+            if (targetId) {
+                handleStartClose(targetId);
+            }
+        };
+        window.addEventListener('request-close-tab', handleRequestClose);
+        return () => {
+            window.removeEventListener('request-close-tab', handleRequestClose);
+        };
+    }, [tabs, handleSave]);
+
     const handleWheel = (e: React.WheelEvent) => {
         if (tabBarRef.current && e.deltaY !== 0 && e.deltaX === 0) {
             tabBarRef.current.scrollLeft += e.deltaY;
