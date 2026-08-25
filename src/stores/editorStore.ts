@@ -99,8 +99,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const newTabs = state.tabs.filter((t) => t.id !== id);
 
     if (newTabs.length === 0) {
-      // Last tab closed -> quit the app
-      invoke('exit_app');
+      // Last tab closed -> native fade-out animation then exit
+      invoke('fade_close_window');
       return;
     } else {
       let newActive = state.activeTabId;

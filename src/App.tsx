@@ -122,7 +122,8 @@ function App() {
           targetWindow: event.payload.targetWindow,
           tabs: myTabs,
         });
-        await getCurrentWindow().destroy();
+        // Native fade-out animation then window close
+        await invoke('fade_close_window');
       }
     })
       .then((u) => {
@@ -169,8 +170,8 @@ function App() {
           const dirtyTabs = useEditorStore.getState().tabs.filter((t) => t.isDirty);
 
           if (dirtyTabs.length === 0) {
-            // No unsaved changes -> close immediately
-            await invoke('exit_app');
+            // No unsaved changes -> native fade exit
+            await invoke('fade_close_window');
             return;
           }
 
@@ -195,8 +196,8 @@ function App() {
             // 'dont_save' -> continue to next dirty tab
           }
 
-          // All dirty tabs resolved -> exit the app
-          await invoke('exit_app');
+          // All dirty tabs resolved -> native fade exit
+          await invoke('fade_close_window');
         } catch (err) {
           console.error('Close guard error:', err);
           isClosing = false;

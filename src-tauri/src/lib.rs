@@ -65,6 +65,67 @@ fn exit_app(window: tauri::Window) {
     }
 }
 
+/// Smoothly fades out the native NSWindow alpha (1 -> 0) over ~150ms,
+/// then closes/destroys the window, giving a native-level exit animation.
+#[tauri::command]
+fn fade_close_window(window: tauri::Window) {
+    use tauri::Manager;
+    #[cfg(target_os = "macos")]
+    {
+        let app = window.app_handle().clone();
+        let remaining_count = app.webview_windows().into_iter()
+            .filter(|(k, _)| k != "tab-drag-ghost")
+            .count();
+        let is_last = remaining_count <= 1;
+
+        if let Ok(ns_window_ptr) = window.ns_window() {
+            // Convert to usize before the closure so it is Send-safe
+            let ns_win_addr = ns_window_ptr as usize;
+            window.run_on_main_thread(move || {
+                use objc2::msg_send;
+                use objc2_app_kit::NSAnimationContext;
+
+                unsafe {
+                    let ns_win: *mut objc2::runtime::AnyObject = ns_win_addr as _;
+                    if ns_win.is_null() { return; }
+
+                    // Begin a 0.15s animation context
+                    NSAnimationContext::beginGrouping();
+                    let ctx = NSAnimationContext::currentContext();
+                    ctx.setDuration(0.15);
+
+                    // Animate window alpha to 0 via the animator proxy
+                    let animator: *mut objc2::runtime::AnyObject = msg_send![ns_win, animator];
+                    let _: () = msg_send![animator, setAlphaValue: 0.0_f64];
+
+                    NSAnimationContext::endGrouping();
+
+                    // Schedule actual close after animation finishes
+                    std::thread::spawn(move || {
+                        std::thread::sleep(std::time::Duration::from_millis(160));
+                        if is_last {
+                            std::process::exit(0);
+                        } else {
+                            // Order out the window (hides it without process exit)
+                            let ptr = ns_win_addr as *mut objc2::runtime::AnyObject;
+                            let _: () = msg_send![ptr, orderOut: ptr];
+                        }
+                    });
+                }
+            }).ok();
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        use tauri::Manager;
+        let app = window.app_handle();
+        let remaining = app.webview_windows().into_iter()
+            .filter(|(k, _)| k != "tab-drag-ghost")
+            .count();
+        if remaining <= 1 { app.exit(0); } else { let _ = window.destroy(); }
+    }
+}
+
 #[cfg(target_os = "macos")]
 fn adjust_traffic_lights(window: &tauri::Window) {
     if let Ok(ns_window_ptr) = window.ns_window() {
@@ -446,6 +507,7 @@ pub fn run() {
             load_session,
             prompt_save_dialog,
             exit_app,
+            fade_close_window,
             get_cli_file,
             detach_tab,
             get_window_tab,

@@ -154,6 +154,28 @@ body {
 }
 
 /* ========== App Layout ========== */
+@keyframes window-reveal-entry {
+  0% {
+    opacity: 0;
+    transform: scale(0.982);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes window-exit-fade {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
 .app {
   display: flex;
   flex-direction: column;
@@ -164,6 +186,17 @@ body {
   background: var(--bg-app);
   box-shadow: inset 0 0 0 1px var(--border-color);
   transition: opacity 0.22s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.22s cubic-bezier(0.2, 0, 0, 1);
+  animation: window-reveal-entry 0.22s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  transform-origin: center center;
+}
+
+.app.is-window-closing {
+  animation: window-exit-fade 0.16s cubic-bezier(0.2, 0, 0, 1) forwards !important;
+  pointer-events: none;
+}
+
+body.reduce-motion .app {
+  animation: none !important;
 }
 
 .app.is-tab-floating {

@@ -548,7 +548,8 @@ export const TabBar: React.FC = () => {
                         if (result === 'merged' || result === 'detached') {
                             const remaining = useEditorStore.getState().tabs.filter(t => t.id !== id);
                             if (remaining.length === 0) {
-                                await getCurrentWindow().destroy();
+                                // Native fade-out animation then window close
+                                await invoke('fade_close_window');
                             } else {
                                 useEditorStore.getState().closeTab(id);
                             }
@@ -600,8 +601,13 @@ export const TabBar: React.FC = () => {
         const currentTabs = useEditorStore.getState().tabs;
         const currentActiveId = useEditorStore.getState().activeTabId;
         const { reduceMotion } = useSettingsStore.getState();
-        if (currentTabs.length <= 1 || reduceMotion) {
-            closeTab(idToClose);
+        if (currentTabs.length <= 1) {
+            if (reduceMotion) {
+                closeTab(idToClose);
+            } else {
+                // Native fade-out animation then window close (via editorStore closeTab -> fade_close_window)
+                closeTab(idToClose);
+            }
             return;
         }
 
