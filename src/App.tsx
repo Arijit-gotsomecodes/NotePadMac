@@ -97,11 +97,12 @@ function App() {
       })
       .catch(console.error)
       .finally(() => {
-        // Show the window now that the DOM and tab content are fully mounted and painted
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            getCurrentWindow().show().catch(() => {});
-          });
+        // Show the window now that the DOM and tab content are fully mounted and painted.
+        // Use show_window_with_fade to animate the entire native NSWindow (including
+        // traffic lights) from alpha=0 -> 1, so nothing floats on a transparent bg.
+        const { reduceMotion } = useSettingsStore.getState();
+        invoke('show_window_with_fade', { reduceMotion }).catch(() => {
+          getCurrentWindow().show().catch(() => {});
         });
       });
 

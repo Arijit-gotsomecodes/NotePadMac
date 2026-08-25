@@ -64,7 +64,56 @@ fn exit_app(window: tauri::Window) {
     }
 }
 
-/// Smoothly fades out the native NSWindow alpha (1 -> 0) over ~150ms,
+/// Fades in the native NSWindow from alpha=0 -> 1 over ~160ms via NSAnimationContext.
+/// This ensures traffic lights (native NSWindow controls, outside the WebView) and
+/// the WebView content animate in together, preventing traffic lights from floating
+/// on a transparent background.
+#[tauri::command]
+fn show_window_with_fade(window: tauri::Window, reduce_motion: Option<bool>) {
+    #[cfg(target_os = "macos")]
+    {
+        if reduce_motion.unwrap_or(false) {
+            let _ = window.show();
+            return;
+        }
+
+        if let Ok(ns_window_ptr) = window.ns_window() {
+            let ns_win_addr = ns_window_ptr as usize;
+            window.run_on_main_thread(move || {
+                use objc2::msg_send;
+                use objc2_app_kit::NSAnimationContext;
+
+                unsafe {
+                    let ns_win: *mut objc2::runtime::AnyObject = ns_win_addr as _;
+                    if ns_win.is_null() { return; }
+
+                    // Set alpha to 0 first so the window is invisible when it appears
+                    let _: () = msg_send![ns_win, setAlphaValue: 0.0_f64];
+
+                    // Show the window (entire NSWindow, including traffic lights)
+                    let nil: *mut objc2::runtime::AnyObject = std::ptr::null_mut();
+                    let _: () = msg_send![ns_win, makeKeyAndOrderFront: nil];
+
+                    // Animate the whole window alpha 0 -> 1 (~160ms)
+                    NSAnimationContext::beginGrouping();
+                    let ctx = NSAnimationContext::currentContext();
+                    ctx.setDuration(0.16);
+                    let animator: *mut objc2::runtime::AnyObject = msg_send![ns_win, animator];
+                    let _: () = msg_send![animator, setAlphaValue: 1.0_f64];
+                    NSAnimationContext::endGrouping();
+                }
+            }).ok();
+        } else {
+            let _ = window.show();
+        }
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = window.show();
+    }
+}
+
+/// Smoothly fades out the native NSWindow alpha (1 -> 0) over ~160ms,
 /// then closes/destroys the window, giving a native-level exit animation.
 #[tauri::command]
 fn fade_close_window(window: tauri::Window, reduce_motion: Option<bool>) {
@@ -100,10 +149,10 @@ fn fade_close_window(window: tauri::Window, reduce_motion: Option<bool>) {
                     let ns_win: *mut objc2::runtime::AnyObject = ns_win_addr as _;
                     if ns_win.is_null() { return; }
 
-                    // Begin a 0.15s animation context
+                    // Begin a 0.16s animation context
                     NSAnimationContext::beginGrouping();
                     let ctx = NSAnimationContext::currentContext();
-                    ctx.setDuration(0.15);
+                    ctx.setDuration(0.16);
 
                     // Animate window alpha to 0 via the animator proxy
                     let animator: *mut objc2::runtime::AnyObject = msg_send![ns_win, animator];
@@ -113,7 +162,7 @@ fn fade_close_window(window: tauri::Window, reduce_motion: Option<bool>) {
 
                     // Schedule actual close after animation finishes on the main thread
                     std::thread::spawn(move || {
-                        std::thread::sleep(std::time::Duration::from_millis(160));
+                        std::thread::sleep(std::time::Duration::from_millis(165));
                         let app_for_exit = app_clone.clone();
                         let _ = app_clone.run_on_main_thread(move || {
                             if is_last {
@@ -709,6 +758,7 @@ pub fn run() {
             merge_all_windows,
             get_window_count,
             get_accent_color,
+            show_window_with_fade,
         ])
         .setup(|app| {
             #[cfg(target_os = "macos")]
