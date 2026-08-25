@@ -47,6 +47,7 @@ interface EditorState {
   pushUndo: (id: string, content: string) => void;
   detachTab: (id: string, screenX?: number, screenY?: number) => Promise<void>;
   initDetachedTab: (tab: Tab) => void;
+  openFileInTab: (fileData: { title: string; filePath: string; content: string; encoding: string; lineEnding: string }) => void;
   duplicateTab: (id: string) => void;
   closeOtherTabs: (id: string) => void;
   reorderTabs: (fromIndex: number, toIndex: number) => void;
@@ -393,6 +394,56 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   initDetachedTab: (tab) => {
     set({ tabs: [tab], activeTabId: tab.id });
+  },
+
+  openFileInTab: (fileData) => {
+    const state = get();
+    // 1. If file is already open in an existing tab, just focus it
+    const existing = state.tabs.find((t) => t.filePath === fileData.filePath);
+    if (existing) {
+      set({ activeTabId: existing.id });
+      get().saveSession();
+      return;
+    }
+
+    // 2. If the current store only has 1 blank, clean Untitled tab, reuse and replace it
+    const isSingleEmptyUntitled =
+      state.tabs.length === 1 &&
+      !state.tabs[0].filePath &&
+      state.tabs[0].content === '' &&
+      !state.tabs[0].isDirty;
+
+    if (isSingleEmptyUntitled) {
+      const targetId = state.tabs[0].id;
+      set((s) => ({
+        tabs: s.tabs.map((t) =>
+          t.id === targetId
+            ? {
+                ...t,
+                ...fileData,
+                id: targetId,
+                isDirty: false,
+                undoStack: [],
+                redoStack: [],
+                cursorLine: 1,
+                cursorCol: 1,
+                scrollTop: 0,
+              }
+            : t
+        ),
+        activeTabId: targetId,
+      }));
+    } else {
+      const newTab = createDefaultTab({
+        ...fileData,
+        isDirty: false,
+      });
+      set((s) => ({
+        tabs: [...s.tabs, newTab],
+        activeTabId: newTab.id,
+      }));
+    }
+    get().saveSession();
   },
 
   duplicateTab: (id) => {

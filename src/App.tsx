@@ -76,8 +76,9 @@ function App() {
     let unlistenMergeReq: (() => void) | undefined;
     let unlistenMergeRes: (() => void) | undefined;
 
-    invoke<string | null>('get_window_tab')
-      .then((tabJson) => {
+    const initWindow = async () => {
+      try {
+        const tabJson = await invoke<string | null>('get_window_tab');
         if (tabJson) {
           try {
             const tab = JSON.parse(tabJson);
@@ -86,17 +87,14 @@ function App() {
             console.error('Failed to parse detached tab data:', e);
           }
         } else {
-          invoke<string | null>('get_cli_file')
-            .then((path) => {
-              if (path) {
-                openFilePath(path);
-              }
-            })
-            .catch(console.error);
+          const path = await invoke<string | null>('get_cli_file');
+          if (path) {
+            await openFilePath(path);
+          }
         }
-      })
-      .catch(console.error)
-      .finally(() => {
+      } catch (err) {
+        console.error('Failed to initialize window data:', err);
+      } finally {
         // Show the window now that the DOM and tab content are fully mounted and painted.
         // Use show_window_with_fade to animate the entire native NSWindow (including
         // traffic lights) from alpha=0 -> 1, so nothing floats on a transparent bg.
@@ -104,7 +102,10 @@ function App() {
         invoke('show_window_with_fade', { reduceMotion }).catch(() => {
           getCurrentWindow().show().catch(() => {});
         });
-      });
+      }
+    };
+
+    initWindow();
 
     listen<string>('open-file-path', (event) => {
       if (event.payload) {

@@ -62,24 +62,16 @@ export async function saveTab(tabId?: string): Promise<boolean> {
 export async function openFilePath(path: string): Promise<void> {
     const editorStore = useEditorStore.getState();
 
-    // 1. If file is already open in an existing tab, just switch to it
-    const existingTab = editorStore.tabs.find(t => t.filePath === path);
-    if (existingTab) {
-        editorStore.setActiveTab(existingTab.id);
-        return;
-    }
-
     try {
         const result = await invoke<{ content: string; encoding: string; line_ending: string }>('read_file', { path });
         const fileName = path.split('/').pop() || path.split('\\').pop() || 'Untitled';
         
-        editorStore.addTab({
+        editorStore.openFileInTab({
             title: fileName,
             filePath: path,
             content: result.content,
             encoding: result.encoding,
             lineEnding: result.line_ending,
-            isDirty: false,
         });
     } catch (err) {
         console.error('Failed to open file from path:', err);
