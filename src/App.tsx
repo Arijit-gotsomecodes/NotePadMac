@@ -76,9 +76,8 @@ function App() {
     let unlistenMergeReq: (() => void) | undefined;
     let unlistenMergeRes: (() => void) | undefined;
 
-    const initWindow = async () => {
-      try {
-        const tabJson = await invoke<string | null>('get_window_tab');
+    invoke<string | null>('get_window_tab')
+      .then(async (tabJson) => {
         if (tabJson) {
           try {
             const tab = JSON.parse(tabJson);
@@ -87,28 +86,23 @@ function App() {
             console.error('Failed to parse detached tab data:', e);
           }
         } else {
-          const path = await invoke<string | null>('get_cli_file');
-          if (path) {
-            await openFilePath(path);
+          try {
+            const path = await invoke<string | null>('get_cli_file');
+            if (path) {
+              await openFilePath(path);
+            }
+          } catch (e) {
+            console.error('Failed to get CLI file:', e);
           }
         }
-      } catch (err) {
-        console.error('Failed to initialize window data:', err);
-      } finally {
-        // Wait 2 animation frames so React DOM has committed and WebKit has painted
-        // the background before fading the native window into view
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            const { reduceMotion } = useSettingsStore.getState();
-            invoke('show_window_with_fade', { reduceMotion }).catch(() => {
-              getCurrentWindow().show().catch(() => {});
-            });
-          });
+      })
+      .catch(console.error)
+      .finally(() => {
+        const { reduceMotion } = useSettingsStore.getState();
+        invoke('show_window_with_fade', { reduceMotion }).catch(() => {
+          getCurrentWindow().show().catch(() => {});
         });
-      }
-    };
-
-    initWindow();
+      });
 
     listen<string>('open-file-path', (event) => {
       if (event.payload) {
