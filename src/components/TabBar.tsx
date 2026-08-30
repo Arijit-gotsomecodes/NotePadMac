@@ -19,8 +19,9 @@ export const TabBar: React.FC = () => {
     const [isFloating, setIsFloating] = React.useState<boolean>(false);
     const [isCrossDropTarget, setIsCrossDropTarget] = React.useState<boolean>(false);
     const isCrossDropTargetRef = useRef<boolean>(false);
-    const [crossDropIndex, setCrossDropIndex] = React.useState<number | null>(null);
     const crossDropIndexRef = useRef<number | null>(null);
+    const [crossPlaceholder, setCrossPlaceholder] = React.useState<{ index: number; isCollapsing: boolean } | null>(null);
+    const crossPlaceholderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [isWindowDimmed, setIsWindowDimmed] = React.useState<boolean>(false);
     const [isNearOwnTabBar, setIsNearOwnTabBar] = React.useState<boolean>(false);
     const [justImportedId, setJustImportedId] = React.useState<string | null>(null);
@@ -136,7 +137,11 @@ export const TabBar: React.FC = () => {
                 }
 
                 useEditorStore.getState().insertTabAtIndex(tab, finalIdx);
-                setCrossDropIndex(null);
+                if (crossPlaceholderTimerRef.current) {
+                    clearTimeout(crossPlaceholderTimerRef.current);
+                    crossPlaceholderTimerRef.current = null;
+                }
+                setCrossPlaceholder(null);
                 crossDropIndexRef.current = null;
                 isCrossDropTargetRef.current = false;
                 setIsCrossDropTarget(false);
@@ -153,12 +158,16 @@ export const TabBar: React.FC = () => {
             const myLabel = getCurrentWindow().label;
             const targetWin = e.payload.target_window ?? e.payload.targetWindow ?? null;
             if (targetWin === myLabel) {
+                if (crossPlaceholderTimerRef.current) {
+                    clearTimeout(crossPlaceholderTimerRef.current);
+                    crossPlaceholderTimerRef.current = null;
+                }
                 isCrossDropTargetRef.current = true;
                 setIsCrossDropTarget(true);
                 const localX = e.payload.local_x;
+                const currentTabs = useEditorStore.getState().tabs;
+                let insertIdx = currentTabs.length;
                 if (typeof localX === 'number') {
-                    const currentTabs = useEditorStore.getState().tabs;
-                    let insertIdx = currentTabs.length;
                     for (let i = 0; i < currentTabs.length; i++) {
                         const el = tabElementsRef.current.get(currentTabs[i].id);
                         if (el) {
@@ -170,17 +179,34 @@ export const TabBar: React.FC = () => {
                             }
                         }
                     }
-                    setCrossDropIndex(insertIdx);
-                    crossDropIndexRef.current = insertIdx;
-                } else {
-                    setCrossDropIndex(null);
-                    crossDropIndexRef.current = null;
                 }
+                crossDropIndexRef.current = insertIdx;
+                setCrossPlaceholder({ index: insertIdx, isCollapsing: false });
             } else {
                 isCrossDropTargetRef.current = false;
                 setIsCrossDropTarget(false);
-                setCrossDropIndex(null);
                 crossDropIndexRef.current = null;
+
+                const { reduceMotion } = useSettingsStore.getState();
+                if (reduceMotion) {
+                    if (crossPlaceholderTimerRef.current) {
+                        clearTimeout(crossPlaceholderTimerRef.current);
+                        crossPlaceholderTimerRef.current = null;
+                    }
+                    setCrossPlaceholder(null);
+                } else {
+                    setCrossPlaceholder(prev => {
+                        if (!prev || prev.isCollapsing) return prev;
+                        if (crossPlaceholderTimerRef.current) {
+                            clearTimeout(crossPlaceholderTimerRef.current);
+                        }
+                        crossPlaceholderTimerRef.current = setTimeout(() => {
+                            setCrossPlaceholder(null);
+                            crossPlaceholderTimerRef.current = null;
+                        }, 180);
+                        return { index: prev.index, isCollapsing: true };
+                    });
+                }
             }
         }).then(u => { unlistenHighlight = u; });
 
@@ -190,6 +216,9 @@ export const TabBar: React.FC = () => {
         return () => {
             window.removeEventListener('click', handleOutside);
             window.removeEventListener('contextmenu', handleOutside);
+            if (crossPlaceholderTimerRef.current) {
+                clearTimeout(crossPlaceholderTimerRef.current);
+            }
             unlistenImport?.();
             unlistenHighlight?.();
         };
@@ -740,14 +769,14 @@ export const TabBar: React.FC = () => {
                                         }
                                     : { transform: 'translateX(0)', transition: 'transform 0.18s cubic-bezier(0.25, 1, 0.5, 1)' };
 
-                                const showPlaceholderBefore = isCrossDropTarget && crossDropIndex === index;
+                                const showPlaceholderBefore = crossPlaceholder && crossPlaceholder.index === index;
 
                                 return (
                                     <React.Fragment key={tab.id}>
                                         {showPlaceholderBefore && (
                                             <div
                                                 key={`__cross_placeholder_before_${tab.id}__`}
-                                                className="tab tab-drop-placeholder"
+                                                className={`tab tab-drop-placeholder ${crossPlaceholder.isCollapsing ? 'is-collapsing' : ''}`}
                                                 style={{ '--target-tab-width': `${targetTabWidth}px` } as React.CSSProperties}
                                             />
                                         )}
@@ -790,10 +819,10 @@ export const TabBar: React.FC = () => {
                                 );
                             })}
                             {/* Cross-window drop placeholder at the end of the list */}
-                            {isCrossDropTarget && (crossDropIndex === null || crossDropIndex >= tabs.length) && (
+                            {crossPlaceholder && crossPlaceholder.index >= tabs.length && (
                                 <div
                                     key="__cross_placeholder_end__"
-                                    className="tab tab-drop-placeholder"
+                                    className={`tab tab-drop-placeholder ${crossPlaceholder.isCollapsing ? 'is-collapsing' : ''}`}
                                     style={{ '--target-tab-width': `${targetTabWidth}px` } as React.CSSProperties}
                                 />
                             )}

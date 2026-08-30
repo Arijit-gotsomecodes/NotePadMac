@@ -180,13 +180,36 @@
     width: 0;
     min-width: 0;
     max-width: 0;
+    padding: 0;
+    margin-right: -6px;
     opacity: 0;
   }
   100% {
     width: var(--target-tab-width, 160px);
     min-width: var(--target-tab-width, 160px);
     max-width: var(--target-tab-width, 160px);
+    padding: 0 10px 0 12px;
+    margin-right: 0;
     opacity: 1;
+  }
+}
+
+@keyframes placeholder-collapse {
+  0% {
+    width: var(--target-tab-width, 160px);
+    min-width: var(--target-tab-width, 160px);
+    max-width: var(--target-tab-width, 160px);
+    padding: 0 10px 0 12px;
+    margin-right: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    padding: 0;
+    margin-right: -6px;
+    opacity: 0;
   }
 }
 
@@ -231,6 +254,10 @@
   pointer-events: none;
   overflow: hidden;
   animation: placeholder-expand 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.tab.tab-drop-placeholder.is-collapsing {
+  animation: placeholder-collapse 0.18s cubic-bezier(0.25, 1, 0.5, 1) forwards;
 }
 
 .tab.is-own-drop-placeholder .tab-title,
