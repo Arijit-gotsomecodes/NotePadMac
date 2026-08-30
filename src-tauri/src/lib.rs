@@ -444,6 +444,16 @@ fn detach_tab(app: tauri::AppHandle, tab_json: String, x: Option<f64>, y: Option
 
     #[cfg(target_os = "macos")]
     {
+        // Force alpha=0 immediately so traffic lights stay invisible until fade-in
+        if let Ok(ns_window_ptr) = win.ns_window() {
+            unsafe {
+                use objc2::msg_send;
+                let ns_win: *mut objc2::runtime::AnyObject = ns_window_ptr as _;
+                if !ns_win.is_null() {
+                    let _: () = msg_send![ns_win, setAlphaValue: 0.0_f64];
+                }
+            }
+        }
         let w = win.as_ref().window().clone();
         win.run_on_main_thread(move || {
             adjust_traffic_lights(&w);
@@ -765,6 +775,17 @@ pub fn run() {
             {
                 use tauri::Manager;
                 if let Some(win) = app.get_webview_window("main") {
+                    // Force NSWindow alpha=0 immediately so nothing is visible
+                    // (including traffic lights) until show_window_with_fade animates it in.
+                    if let Ok(ns_window_ptr) = win.ns_window() {
+                        unsafe {
+                            use objc2::msg_send;
+                            let ns_win: *mut objc2::runtime::AnyObject = ns_window_ptr as _;
+                            if !ns_win.is_null() {
+                                let _: () = msg_send![ns_win, setAlphaValue: 0.0_f64];
+                            }
+                        }
+                    }
                     let w = win.as_ref().window().clone();
                     win.run_on_main_thread(move || {
                         adjust_traffic_lights(&w);
