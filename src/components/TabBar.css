@@ -225,7 +225,7 @@
               padding 0.2s cubic-bezier(0.25, 1, 0.5, 1),
               margin 0.2s cubic-bezier(0.25, 1, 0.5, 1),
               background 0.15s ease,
-              opacity 0.15s ease !important;
+              opacity 0.15s ease;
 }
 
 .tab.is-floating-collapsed {
@@ -244,7 +244,7 @@
               max-width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
               padding 0.2s cubic-bezier(0.25, 1, 0.5, 1),
               margin 0.2s cubic-bezier(0.25, 1, 0.5, 1),
-              opacity 0.12s ease !important;
+              opacity 0.12s ease;
 }
 
 .tab.tab-drop-placeholder {
@@ -258,6 +258,14 @@
 
 .tab.tab-drop-placeholder.is-collapsing {
   animation: placeholder-collapse 0.18s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Reduce motion overrides for tab drag placeholders */
+.reduce-motion .tab.tab-drop-placeholder,
+.reduce-motion .tab.is-own-drop-placeholder,
+.reduce-motion .tab.is-floating-collapsed {
+  transition: none !important;
+  animation: none !important;
 }
 
 .tab.is-own-drop-placeholder .tab-title,

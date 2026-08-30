@@ -73,6 +73,18 @@ fn show_window_with_fade(window: tauri::Window, reduce_motion: Option<bool>) {
     #[cfg(target_os = "macos")]
     {
         if reduce_motion.unwrap_or(false) {
+            // Setup forces alphaValue=0 to prevent traffic light flash.
+            // With reduce motion we skip the fade animation, but we must
+            // restore alpha=1 before showing, otherwise the window stays invisible.
+            if let Ok(ns_window_ptr) = window.ns_window() {
+                unsafe {
+                    use objc2::msg_send;
+                    let ns_win: *mut objc2::runtime::AnyObject = ns_window_ptr as _;
+                    if !ns_win.is_null() {
+                        let _: () = msg_send![ns_win, setAlphaValue: 1.0_f64];
+                    }
+                }
+            }
             let _ = window.show();
             return;
         }
