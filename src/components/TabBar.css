@@ -5,65 +5,348 @@
   height: 42px;
   min-height: 42px;
   user-select: none;
-  -webkit-app-region: drag;
-  padding-left: 0;
-}
-
-.app-branding {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-left: 12px;
+  padding-left: 92px;
   padding-right: 8px;
-  height: 100%;
-}
-
-.app-logo {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
 .tab-list {
   display: flex;
-  flex: 1;
+  flex: 0 1 auto;
   overflow-x: auto;
   overflow-y: hidden;
-  -webkit-app-region: no-drag;
-  gap: 2px;
-  padding: 6px 4px 0;
+  gap: 6px;
+  padding: 6px 8px 0 8px;
   align-items: stretch;
+  scrollbar-width: none;
+  min-width: 0;
 }
 
 .tab-list::-webkit-scrollbar {
   height: 0;
+  display: none;
 }
+
+.tab-drag-spacer {
+  flex: 1;
+  min-width: 8px;
+  height: 100%;
+}
+
+
+/* Left-edge gradient fade when scrolled right — right edge is handled by the sticky tab-add-group */
+.tab-bar {
+  position: relative;
+}
+
+.tab-bar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 92px; /* starts where the tab-list begins (after traffic light padding) */
+  width: 32px;
+  pointer-events: none;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  background: linear-gradient(to right, var(--bg-tab-bar), transparent);
+}
+
+.tab-bar.can-scroll-left::before {
+  opacity: 1;
+}
+
+/* Sticky add-button group — lives OUTSIDE tab-list as a flex sibling in tab-bar.
+   Uses ::before pseudo-element to paint the fade overlay over the right edge of tab-list. */
+.tab-add-group {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  position: relative;
+  padding: 6px 2px 0 2px;
+  z-index: 10;
+}
+
+/* Fade overlay: absolutely positioned to the LEFT of the + button, overlapping tab-list */
+.tab-add-group::before {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--bg-tab-bar));
+  transition: width 0.2s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.18s ease;
+  z-index: 11;
+}
+
+.tab-add-group.show-fade::before {
+  width: 40px;
+  opacity: 1;
+}
+
 
 .tab {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 0 14px;
-  min-width: 100px;
-  max-width: 200px;
+  min-width: 120px;
+  max-width: 220px;
   height: 100%;
-  cursor: pointer;
+  cursor: default;
   background: transparent;
-  transition: all 0.15s ease;
-  -webkit-app-region: no-drag;
+  transition: background 0.18s cubic-bezier(0.25, 1, 0.5, 1), color 0.15s ease, opacity 0.18s ease, box-shadow 0.18s ease;
   position: relative;
-  border-radius: 6px 6px 0 0;
+  border-radius: 10px 10px 0 0;
   flex-shrink: 0;
+  user-select: none;
+}
+
+.tab.is-dragging {
+  opacity: 0.96;
+  background: var(--bg-tab-active) !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.tab.is-dragging.is-floating-detached {
+  opacity: 0.94;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.28), 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px !important;
+}
+
+.tab.is-dragging.is-floating-detached::before,
+.tab.is-dragging.is-floating-detached::after {
+  opacity: 0 !important;
+}
+
+
+
+@keyframes tab-add-entry {
+  0% {
+    max-width: 0;
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    max-width: 220px;
+    min-width: 120px;
+    padding-left: 14px;
+    padding-right: 14px;
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.tab.is-newly-added {
+  animation: tab-add-entry 0.16s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  overflow: hidden;
+}
+
+@keyframes tab-close-exit {
+  0% {
+    max-width: 220px;
+    min-width: 120px;
+    padding-left: 14px;
+    padding-right: 14px;
+    margin-right: 0;
+    opacity: 1;
+    transform: scale(1);
+  }
+  100% {
+    max-width: 0;
+    min-width: 0;
+    padding-left: 0;
+    padding-right: 0;
+    margin-right: -6px;
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+
+.tab.is-closing {
+  animation: tab-close-exit 0.15s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+@keyframes placeholder-expand {
+  0% {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    padding: 0;
+    margin-right: -6px;
+    opacity: 0;
+  }
+  100% {
+    width: var(--target-tab-width, 160px);
+    min-width: var(--target-tab-width, 160px);
+    max-width: var(--target-tab-width, 160px);
+    padding: 0 10px 0 12px;
+    margin-right: 0;
+    opacity: 1;
+  }
+}
+
+@keyframes placeholder-collapse {
+  0% {
+    width: var(--target-tab-width, 160px);
+    min-width: var(--target-tab-width, 160px);
+    max-width: var(--target-tab-width, 160px);
+    padding: 0 10px 0 12px;
+    margin-right: 0;
+    opacity: 1;
+  }
+  100% {
+    width: 0;
+    min-width: 0;
+    max-width: 0;
+    padding: 0;
+    margin-right: -6px;
+    opacity: 0;
+  }
+}
+
+.tab.tab-drop-placeholder,
+.tab.is-own-drop-placeholder {
+  background: color-mix(in srgb, var(--accent-color) 20%, transparent) !important;
+  border-radius: 10px 10px 0 0;
+  box-shadow: none !important;
+  border: none !important;
+  transition: width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              min-width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              max-width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              padding 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              margin 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              background 0.15s ease,
+              opacity 0.15s ease;
+}
+
+.tab.is-floating-collapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  max-width: 0 !important;
+  padding: 0 !important;
+  margin-right: -6px !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  transition: width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              min-width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              max-width 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              padding 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              margin 0.2s cubic-bezier(0.25, 1, 0.5, 1),
+              opacity 0.12s ease;
+}
+
+.tab.tab-drop-placeholder {
+  width: var(--target-tab-width, 160px);
+  min-width: var(--target-tab-width, 160px);
+  max-width: var(--target-tab-width, 160px);
+  pointer-events: none;
+  overflow: hidden;
+  animation: placeholder-expand 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.tab.tab-drop-placeholder.is-collapsing {
+  animation: placeholder-collapse 0.18s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* Reduce motion overrides for tab drag placeholders */
+.reduce-motion .tab.tab-drop-placeholder,
+.reduce-motion .tab.is-own-drop-placeholder,
+.reduce-motion .tab.is-floating-collapsed {
+  transition: none !important;
+  animation: none !important;
+}
+
+.tab.is-own-drop-placeholder .tab-title,
+.tab.is-own-drop-placeholder .tab-close,
+.tab.is-own-drop-placeholder .tab-divider,
+.tab.is-floating-collapsed .tab-title,
+.tab.is-floating-collapsed .tab-close,
+.tab.is-floating-collapsed .tab-divider,
+.tab.is-closing .tab-title,
+.tab.is-closing .tab-close,
+.tab.is-closing .tab-divider {
+  opacity: 0 !important;
+}
+
+.tab-list.is-cross-drop-target {
+  background: transparent;
+  outline: none;
 }
 
 .tab:hover {
   background: var(--bg-tab-hover);
 }
 
+/* Vertical hairline divider for inactive tabs */
+.tab-divider {
+  position: absolute;
+  right: -3.5px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 16px;
+  background: rgba(0, 0, 0, 0.16);
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 1;
+}
+
+[data-theme='dark'] .tab-divider {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/* Hide divider when tab is active, hovered, or closing */
+.tab.active:not(.is-floating-collapsed) .tab-divider,
+.tab:hover:not(.is-floating-collapsed) .tab-divider,
+.tab.is-closing .tab-divider {
+  opacity: 0;
+}
+
+/* Hide divider on the tab immediately before an active or hovered tab */
+.tab:has(+ .tab.active:not(.is-floating-collapsed):not(.is-closing)) .tab-divider,
+.tab:has(+ .tab:hover:not(.is-floating-collapsed):not(.is-closing)) .tab-divider {
+  opacity: 0;
+}
+
+
 .tab.active {
   background: var(--bg-tab-active);
-  z-index: 1;
+  z-index: 2;
+}
+
+/* Chrome / Edge concave bottom flare curves */
+.tab.active::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: -8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle at top left, transparent 8px, var(--bg-tab-active) 8.5px);
+  pointer-events: none;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: -8px;
+  width: 8px;
+  height: 8px;
+  background: radial-gradient(circle at top right, transparent 8px, var(--bg-tab-active) 8.5px);
+  pointer-events: none;
 }
 
 .tab-title {
@@ -72,21 +355,16 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12.5px;
-  font-weight: 400;
+  font-weight: 450;
   color: var(--text-secondary);
   letter-spacing: -0.01em;
+  display: flex;
+  align-items: center;
 }
 
 .tab.active .tab-title {
   color: var(--text-primary);
   font-weight: 500;
-}
-
-.dirty-dot {
-  color: var(--accent-color);
-  margin-right: 4px;
-  font-size: 8px;
-  line-height: 1;
 }
 
 .tab-close {
@@ -97,32 +375,86 @@
   height: 18px;
   border: none;
   background: none;
-  color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1;
   cursor: pointer;
   border-radius: 50%;
   padding: 0;
-  opacity: 0;
-  transition: all 0.15s ease;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
 }
 
-.tab:hover .tab-close,
-.tab.active .tab-close {
-  opacity: 1;
+/* Close X Icon: shown on active tab by default (when clean) or on hover */
+.tab-close .tab-indicator-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  color: var(--text-secondary);
+}
+
+.tab.active .tab-close .tab-indicator-close,
+.tab:hover .tab-close .tab-indicator-close,
+.tab-close:hover .tab-indicator-close {
+  display: flex;
+}
+
+.tab-close .tab-indicator-close svg {
+  display: block;
+}
+
+/* Dirty Dot: shown when tab is dirty and not hovered */
+.tab-close .tab-indicator-dirty {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  pointer-events: none;
+}
+
+/* When dirty and NOT hovered: show dirty dot and cover/hide close X (even on active tab) */
+.tab-close.is-dirty:not(:hover) .tab-indicator-dirty {
+  display: block !important;
+}
+
+.tab:not(:hover) .tab-close.is-dirty .tab-indicator-close {
+  display: none !important;
+}
+
+/* When hovering the tab or the close button: hide dirty dot, reveal close X */
+.tab:hover .tab-close .tab-indicator-dirty,
+.tab-close:hover .tab-indicator-dirty {
+  display: none !important;
+}
+
+.tab:hover .tab-close .tab-indicator-close,
+.tab-close:hover .tab-indicator-close {
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
 }
 
 .tab-close:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: rgba(235, 50, 50, 0.12);
+}
+
+.tab-close:hover .tab-indicator-close {
+  color: #e03131;
+}
+
+[data-theme='dark'] .tab-close:hover {
+  background: rgba(255, 80, 80, 0.18);
+}
+
+[data-theme='dark'] .tab-close:hover .tab-indicator-close {
+  color: #ff6b6b;
 }
 
 .tab-actions {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 0 8px;
-  -webkit-app-region: no-drag;
+  padding: 6px 4px 0;
 }
 
 .tab-add,
@@ -130,18 +462,77 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border: none;
   background: none;
   color: var(--text-secondary);
   cursor: pointer;
   border-radius: 6px;
   transition: all 0.15s ease;
+  align-self: center;
 }
 
 .tab-add:hover,
 .settings-btn:hover {
   background: var(--bg-tab-hover);
   color: var(--text-primary);
+}
+
+/* Tab Context Menu (macOS Native Style) */
+.tab-context-menu {
+  position: fixed;
+  z-index: 3000;
+  min-width: 180px;
+  background: var(--bg-menu);
+  backdrop-filter: blur(25px) saturate(190%);
+  -webkit-backdrop-filter: blur(25px) saturate(190%);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  animation: fadeIn 0.1s ease-out;
+  display: flex;
+  flex-direction: column;
+}
+
+.tab-context-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  border-radius: 5px;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.1s ease;
+}
+
+.tab-context-item:hover {
+  background: var(--accent-color);
+  color: #ffffff;
+}
+
+.tab-context-item:hover .tab-context-shortcut {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.tab-context-shortcut {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  margin-left: 14px;
+}
+
+.tab-context-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 4px 6px;
+}
+
+.tab-drag-spacer {
+  flex: 1;
+  height: 100%;
+  min-width: 30px;
 }

@@ -10,13 +10,22 @@
     "frontendDist": "../dist"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "NotepadMac",
         "width": 900,
         "height": 650,
         "minWidth": 400,
-        "minHeight": 300
+        "minHeight": 300,
+        "titleBarStyle": "Overlay",
+        "hiddenTitle": true,
+        "transparent": true,
+        "acceptFirstMouse": true,
+        "trafficLightPosition": {
+          "x": 16,
+          "y": 15
+        }
       }
     ],
     "security": {
@@ -25,13 +34,24 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app", "dmg"],
+    "category": "Productivity",
+    "shortDescription": "Windows 11 Notepad for macOS",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "fileAssociations": [
+      {
+        "ext": ["txt", "text", "log", "md", "markdown", "json", "csv", "ini", "yaml", "yml", "xml", "toml", "conf", "cfg", "sh", "bat", "py", "js", "ts", "rs", "cpp", "c", "h", "html", "css", "sql"],
+        "name": "Plain Text Document",
+        "description": "Plain Text Document",
+        "role": "Editor",
+        "mimeType": "text/plain"
+      }
     ]
   }
 }

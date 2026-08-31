@@ -13,10 +13,10 @@
     border: none;
     outline: none !important;
     resize: none;
-    padding: 16px 24px;
+    padding: 8px 14px 16px 14px;
     background: transparent;
     color: var(--text-primary);
-    line-height: 1.65;
+    line-height: 1.6;
     tab-size: 4;
     caret-color: var(--accent-color);
     letter-spacing: 0.01em;
@@ -25,13 +25,13 @@
 /* Responsive padding for larger screens */
 @media (min-width: 1200px) {
     .editor-textarea {
-        padding: 20px 32px;
+        padding: 10px 20px 20px 20px;
     }
 }
 
 @media (min-width: 1600px) {
     .editor-textarea {
-        padding: 24px 48px;
+        padding: 12px 28px 24px 28px;
     }
 }
 
@@ -47,7 +47,8 @@
 }
 
 .editor-textarea::-webkit-scrollbar {
-    width: 8px;
+    width: 11px;
+    height: 11px;
 }
 
 .editor-textarea::-webkit-scrollbar-track {
@@ -57,12 +58,13 @@
 .editor-textarea::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
     border-radius: 100px;
-    border: 2px solid transparent;
+    border: 2.5px solid transparent;
     background-clip: content-box;
 }
 
 .editor-textarea::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
+    border: 2px solid transparent;
     background-clip: content-box;
 }
 
