@@ -2,8 +2,8 @@
 
 A modern, fast, and lightweight Notepad for macOS, built with Tauri, React, and TypeScript.
 
-[![Download for macOS (Apple Silicon)](https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3)-blue?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v1.0.4/NotepadMac_1.0.4_aarch64.dmg)
-[![Download for macOS (Intel)](https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v1.0.4/NotepadMac_1.0.4_x64.dmg)
+[![Download for macOS (Apple Silicon)](https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3)-blue?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v2.0.0/NotepadMac_2.0.0_aarch64.dmg)
+[![Download for macOS (Intel)](https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v2.0.0/NotepadMac_2.0.0_x64.dmg)
 
 [Notice] Some apple silion laptop might face issue while first opeaning the app see Troubleshooting Section for fix, Hombrew is Kinda bit iffy, plz download using the above bottons, or from releases. Plz I need a maintainer 🥲
 
