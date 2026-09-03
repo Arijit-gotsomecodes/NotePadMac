@@ -16,9 +16,29 @@ A modern, fast, and lightweight Notepad for macOS, built with Tauri, React, and 
 
 ## Screenshots
 
-![Notepad Mac Screenshot 1](assets/1.png)
-![Notepad Mac Screenshot 2](assets/2.png)
-![Notepad Mac Screenshot 3](assets/3.png)
+Liquid-glass chrome, tabs in the title bar, and a full light and dark theme.
+
+![NotepadMac in light and dark mode](assets/V2/1-light-and-dark.png)
+
+**Auto-save** — tabs that already have a file are written to disk as you stop typing, with the state shown in the status bar.
+
+![Auto-save state in the status bar](assets/V2/2-auto-save.png)
+
+**Light mode**
+
+![NotepadMac in light mode](assets/V2/3-light-mode.png)
+
+**Menus**
+
+![File menu](assets/V2/4-file-menu.png)
+
+![Edit menu](assets/V2/5-edit-menu.png)
+
+![View menu](assets/V2/6-view-menu.png)
+
+**Settings**
+
+![Settings, with theme, font, word wrap and auto-save options](assets/V2/7-settings.png)
 
 ## Development
 
