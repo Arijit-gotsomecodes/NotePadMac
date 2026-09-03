@@ -2,11 +2,11 @@ cask "notepadformac" do
   version "2.0.0"
 
 on_intel do
-    sha256 "4ed0987cd53f57875f3697c4e0340ed9fdefdb219d946155618ce5e563fb280a"
+    sha256 "8f2b14f6ac6ffc70799b118a6cecbf01b05b04ce86c8838831d736c96838afd4"
     url "https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v#{version}/NotepadMac_#{version}_x64.dmg"
   end
   on_arm do
-    sha256 "3642cc41741c15f567c204c7132df450537061b93ebab88ceb637083f7350b40"
+    sha256 "213ffd6133ef373ee8dd97892d2b788828a53738f024a81ea6e595463c083c35"
     url "https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v#{version}/NotepadMac_#{version}_aarch64.dmg"
   end
 
