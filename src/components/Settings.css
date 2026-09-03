@@ -1,61 +1,55 @@
 /* ===================================
-   Settings Page - Polished
+   Settings sheet
    =================================== */
 
 .settings-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    inset: 0;
     z-index: 2000;
-    animation: fadeIn 0.15s ease-out;
     display: flex;
     align-items: center;
     justify-content: center;
+    background: rgba(0, 0, 0, 0.26);
+    -webkit-backdrop-filter: blur(6px);
+    backdrop-filter: blur(6px);
+    animation: fadeIn 0.15s var(--ease-out);
 }
 
 @keyframes fadeIn {
     from { opacity: 0; }
-    to { opacity: 1; }
+    to   { opacity: 1; }
 }
 
 .settings-modal {
     width: 480px;
     max-width: 90vw;
-    max-height: 85vh;
-    background: var(--bg-editor);
-    border-radius: 12px;
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+    max-height: 84vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    animation: slideUp 0.2s cubic-bezier(0.2, 0, 0, 1);
+    background: var(--mat-popover);
+    -webkit-backdrop-filter: var(--blur-popover);
+    backdrop-filter: var(--blur-popover);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg), var(--edge-highlight);
+    animation: slideUp 0.24s var(--ease-spring);
 }
 
 @keyframes slideUp {
-    from {
-        transform: translateY(16px) scale(0.98);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
+    from { transform: translateY(14px) scale(0.97); opacity: 0; }
+    to   { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .settings-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 20px 24px 16px;
+    padding: 18px 20px 14px;
 }
 
 .settings-title {
-    font-size: 18px;
+    font-size: 16px;
     font-weight: 600;
     color: var(--text-primary);
     letter-spacing: -0.02em;
@@ -65,14 +59,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 28px;
+    height: 28px;
     background: none;
     border: none;
     color: var(--text-secondary);
-    cursor: pointer;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    transition: all 0.15s ease;
+    cursor: default;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out),
+        transform 0.12s var(--ease-out);
 }
 
 .settings-close:hover {
@@ -80,41 +75,92 @@
     color: var(--text-primary);
 }
 
+.settings-close:active {
+    transform: scale(0.92);
+}
+
 .settings-content {
     flex: 1;
     overflow-y: auto;
-    padding: 0 24px 16px;
+    padding: 0 20px 14px;
 }
 
+.settings-group {
+    margin-bottom: 16px;
+}
+
+.settings-group-title {
+    display: block;
+    padding: 0 4px 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--text-secondary);
+}
+
+/* Grouped-inset list, like macOS System Settings. */
 .settings-section {
-    background: var(--bg-tab-bar);
-    border-radius: 10px;
-    margin-bottom: 12px;
+    background: var(--mat-control);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
     overflow: hidden;
+    box-shadow: var(--edge-ring);
 }
 
 .settings-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 14px 16px;
+    padding: 12px 14px;
     gap: 16px;
+    /* Controls wrap to their own line once the label needs the width, so a
+       narrow window reflows instead of crushing the selects. */
+    flex-wrap: wrap;
+    row-gap: 10px;
+}
+
+.settings-row + .settings-row {
+    box-shadow: inset 0 1px 0 var(--border-subtle);
+}
+
+/* A dependent option: indented under its parent row instead of carrying a
+   blank icon slot to fake the alignment. */
+.settings-subrow {
+    padding-left: 51px;
 }
 
 .settings-info {
     display: flex;
     align-items: center;
-    gap: 12px;
-    flex: 1;
+    gap: 11px;
+    /* Small basis so a line only breaks when the window is genuinely narrow —
+       a large basis made the Font row wrap at the default sheet width. */
+    flex: 1 1 120px;
+    min-width: 0;
+}
+
+/* Keep controls hard right, wrapped or not. */
+.settings-info + *,
+.settings-label-group + * {
+    margin-left: auto;
+}
+
+/* The sub-row has no icon, so its label is the flexible item. */
+.settings-row > .settings-label-group {
+    flex: 1 1 120px;
     min-width: 0;
 }
 
 .settings-icon {
-    color: var(--text-secondary);
-    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    border-radius: var(--radius-sm);
+    color: var(--accent-color);
+    background: var(--accent-soft);
 }
 
 .settings-label-group {
@@ -132,50 +178,78 @@
 
 .settings-desc {
     font-size: 11px;
+    line-height: 1.35;
     color: var(--text-secondary);
 }
 
-/* Controls */
+/* ---------- Controls ---------- */
 .settings-controls {
     display: flex;
     gap: 8px;
+    /* Never squeeze or stack the pair. If there isn't room, the whole row
+       wraps and the controls drop to their own line still side by side. */
     flex-shrink: 0;
+    justify-content: flex-end;
 }
 
 .settings-select {
-    background: var(--bg-editor);
+    max-width: 100%;
+    min-width: 0;
+    background: var(--mat-raised);
     color: var(--text-primary);
     border: 1px solid var(--border-color);
+    /* min-height, not height: these are native menulist controls, so this
+       gives them a comfortable floor without fighting the UA's own sizing
+       around the chevron. */
+    min-height: 30px;
     padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 450;
+    border-radius: var(--radius-sm);
+    font-size: 12.5px;
+    font-weight: 500;
+    text-overflow: ellipsis;
     outline: none;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    cursor: default;
+    box-shadow: var(--edge-ring);
+    transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
 }
 
 .settings-select:hover {
-    border-color: var(--text-secondary);
+    border-color: var(--text-tertiary);
 }
 
 .settings-select:focus {
     border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
+/* Fixed-width because its options are all the same shape (14px, 0.8s) —
+   letting it flex just makes it jitter as the value changes. */
 .settings-select-small {
-    width: 70px;
+    flex: 0 0 auto;
+    width: 84px;
+}
+
+/* The font family select carries the longest values, so give it a floor. */
+.settings-controls > .settings-select:not(.settings-select-small) {
+    min-width: 150px;
 }
 
 .settings-toggle {
     position: relative;
-    width: 44px;
-    height: 24px;
-    background: var(--bg-hover);
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    display: block;
+    flex: 0 0 auto;
+    padding: 0;
+    border: none;
+    -webkit-appearance: none;
+    appearance: none;
+    width: 42px;
+    height: 25px;
+    background: var(--bg-active);
+    border-radius: 100px;
+    cursor: default;
     flex-shrink: 0;
+    box-shadow: var(--edge-ring);
+    transition: background 0.24s var(--ease-out);
 }
 
 .settings-toggle.active {
@@ -184,39 +258,45 @@
 
 .settings-toggle-handle {
     position: absolute;
-    top: 3px;
-    left: 3px;
-    width: 18px;
-    height: 18px;
-    background: white;
+    display: block;
+    top: 2.5px;
+    left: 2.5px;
+    width: 20px;
+    height: 20px;
+    background: #fff;
     border-radius: 50%;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.28);
+    transition: transform 0.24s var(--ease-spring);
 }
 
 .settings-toggle.active .settings-toggle-handle {
-    transform: translateX(20px);
+    transform: translateX(17px);
 }
 
-/* Footer / Credits */
+/* Rows that are switched off read as inactive rather than disappearing. */
+.settings-row.is-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+/* ---------- Footer ---------- */
 .settings-footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 24px;
-    border-top: 1px solid var(--border-color);
-    background: var(--bg-tab-bar);
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-subtle);
 }
 
 .settings-about {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 11px;
 }
 
 .settings-app-icon {
-    width: 36px;
-    height: 36px;
+    width: 34px;
+    height: 34px;
     border-radius: 8px;
 }
 
@@ -241,14 +321,16 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 12px;
-    border-radius: 8px;
-    background: var(--bg-editor);
+    padding: 7px 11px;
+    border-radius: var(--radius-md);
+    background: var(--mat-control);
+    border: 1px solid var(--border-subtle);
     color: var(--text-secondary);
     text-decoration: none;
     font-size: 12px;
-    font-weight: 450;
-    transition: all 0.15s ease;
+    font-weight: 500;
+    box-shadow: var(--edge-ring);
+    transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out);
 }
 
 .settings-credit:hover {
@@ -260,16 +342,53 @@
     flex-shrink: 0;
 }
 
-/* Scrollbar */
+/* ---------- Scrollbar ---------- */
 .settings-content::-webkit-scrollbar {
-    width: 6px;
+    width: 8px;
 }
 
 .settings-content::-webkit-scrollbar-thumb {
     background: var(--scrollbar-thumb);
-    border-radius: 3px;
+    border-radius: 100px;
+    border: 2px solid transparent;
+    background-clip: content-box;
 }
 
 .settings-content::-webkit-scrollbar-thumb:hover {
     background: var(--scrollbar-thumb-hover);
+    background-clip: content-box;
+}
+
+/* ---------- Narrow windows ---------- */
+@media (max-width: 560px) {
+    .settings-modal {
+        max-width: 94vw;
+        max-height: 90vh;
+    }
+
+    .settings-header {
+        padding: 15px 16px 12px;
+    }
+
+    .settings-content {
+        padding: 0 16px 12px;
+    }
+
+    .settings-row {
+        padding: 11px 12px;
+    }
+
+    /* The icon column costs more than it earns at this width. */
+    .settings-subrow {
+        padding-left: 12px;
+    }
+
+    .settings-footer {
+        padding: 12px 16px;
+        gap: 12px;
+    }
+
+    .settings-credit span {
+        display: none;
+    }
 }

@@ -1,73 +1,177 @@
+/* ===================================
+   Title bar: traffic lights, then tabs.
+   Windows Notepad layout, macOS material.
+   =================================== */
+
 .tab-bar {
+  position: relative;
+  /* Sits above .app::before (the aurora). Deliberately scoped to this element
+     rather than `.app > *`, which would also override the fixed positioning of
+     the settings and unsaved-changes overlays. */
+  z-index: 1;
   display: flex;
   align-items: stretch;
-  background: var(--bg-tab-bar);
-  height: 42px;
-  min-height: 42px;
+  height: var(--titlebar-height);
+  min-height: var(--titlebar-height);
+  padding-left: var(--traffic-gutter);
   user-select: none;
-  -webkit-app-region: drag;
-  padding-left: 0;
+  background: transparent;
+}
+
+/* The traffic lights sit high in the bar and leave a bare strip underneath
+   them. This fills it with a faint wordmark so the gutter looks occupied.
+   A pseudo-element, not a real node: pseudo-elements are never event targets,
+   so the bar's drag region keeps working straight through it. */
+.tab-bar::before {
+  content: 'NOTEPAD';
+  position: absolute;
+  left: 0;
+  bottom: 6px;
+  width: var(--traffic-gutter);
+  text-align: center;
+  font-size: 7.5px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  /* Offsets the trailing letter-space so the text optically centres. */
+  text-indent: 0.16em;
+  color: var(--text-primary);
+  opacity: 0.22;
+  pointer-events: none;
+  transition: opacity 0.3s var(--ease-out);
+}
+
+.tab-bar:hover::before {
+  opacity: 0.4;
 }
 
 .app-branding {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding-left: 12px;
-  padding-right: 8px;
+  padding-right: 10px;
   height: 100%;
+  pointer-events: none;
 }
 
 .app-logo {
-  width: 22px;
-  height: 22px;
+  width: 19px;
+  height: 19px;
   object-fit: contain;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.16));
+}
+
+/* The empty stretch between the tabs and the settings button is the window's
+   grab area. A faint dot grip says so, instead of leaving it looking like a
+   layout mistake. It's a pseudo-element on purpose: pseudo-elements are not
+   hit-test targets, so the drag region still sees the filler as the target. */
+.tab-drag-filler {
+  position: relative;
+  flex: 1;
+  min-width: 16px;
+  align-self: stretch;
+  overflow: hidden;
+  cursor: grab;
+}
+
+.tab-drag-filler:active {
+  cursor: grabbing;
+}
+
+.tab-drag-filler::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 11px;
+  color: var(--text-primary);
+  background-image: radial-gradient(currentColor 1px, transparent 1.3px);
+  background-size: 7px 5.5px;
+  opacity: 0.13;
+  transition: opacity 0.22s var(--ease-out);
+  pointer-events: none;
+}
+
+.tab-drag-filler:hover::after {
+  opacity: 0.32;
 }
 
 .tab-list {
   display: flex;
-  flex: 1;
+  align-items: flex-end;
+  gap: 2px;
+  max-width: calc(100% - 190px);
   overflow-x: auto;
   overflow-y: hidden;
-  -webkit-app-region: no-drag;
-  gap: 2px;
-  padding: 6px 4px 0;
-  align-items: stretch;
+  padding-top: 7px;
+  scrollbar-width: none;
 }
 
 .tab-list::-webkit-scrollbar {
   height: 0;
 }
 
+/* ---------- Tab ---------- */
 .tab {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 0 14px;
-  min-width: 100px;
-  max-width: 200px;
-  height: 100%;
-  cursor: pointer;
-  background: transparent;
-  transition: all 0.15s ease;
-  -webkit-app-region: no-drag;
-  position: relative;
-  border-radius: 6px 6px 0 0;
+  gap: 6px;
   flex-shrink: 0;
+  height: 100%;
+  min-width: 108px;
+  max-width: 190px;
+  padding: 0 8px 0 12px;
+  cursor: default;
+  background: transparent;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out);
 }
 
-.tab:hover {
-  background: var(--bg-tab-hover);
+.tab:hover:not(.active) {
+  background: var(--tab-hover);
 }
 
+/* Active tab is the same material as the document card, so it reads as
+   physically continuous with the page below it. */
 .tab.active {
-  background: var(--bg-tab-active);
-  z-index: 1;
+  background: var(--mat-editor);
+  -webkit-backdrop-filter: var(--blur-chrome);
+  backdrop-filter: var(--blur-chrome);
+  box-shadow: var(--edge-highlight);
+  z-index: 2;
+}
+
+/* The little concave corners where the tab meets the card. */
+.tab.active::before,
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  width: var(--radius-md);
+  height: var(--radius-md);
+  background: var(--mat-editor);
+  pointer-events: none;
+}
+
+.tab.active::before {
+  left: calc(var(--radius-md) * -1);
+  border-bottom-right-radius: var(--radius-md);
+  -webkit-mask: radial-gradient(circle at 0 0, transparent var(--radius-md), #000 calc(var(--radius-md) + 0.5px));
+  mask: radial-gradient(circle at 0 0, transparent var(--radius-md), #000 calc(var(--radius-md) + 0.5px));
+}
+
+.tab.active::after {
+  right: calc(var(--radius-md) * -1);
+  border-bottom-left-radius: var(--radius-md);
+  -webkit-mask: radial-gradient(circle at 100% 0, transparent var(--radius-md), #000 calc(var(--radius-md) + 0.5px));
+  mask: radial-gradient(circle at 100% 0, transparent var(--radius-md), #000 calc(var(--radius-md) + 0.5px));
 }
 
 .tab-title {
   flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -82,66 +186,85 @@
   font-weight: 500;
 }
 
+/* Unsaved marker: a soft amber dot, like macOS document proxies. */
 .dirty-dot {
-  color: var(--accent-color);
-  margin-right: 4px;
-  font-size: 8px;
-  line-height: 1;
+  flex-shrink: 0;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .tab-close {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  flex-shrink: 0;
+  width: 19px;
+  height: 19px;
   border: none;
   background: none;
   color: var(--text-secondary);
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
+  cursor: default;
   border-radius: 50%;
   padding: 0;
   opacity: 0;
-  transition: all 0.15s ease;
+  transform: scale(0.85);
+  transition: opacity 0.15s var(--ease-out), transform 0.15s var(--ease-out),
+    background 0.15s var(--ease-out);
 }
 
 .tab:hover .tab-close,
 .tab.active .tab-close {
   opacity: 1;
+  transform: scale(1);
 }
 
 .tab-close:hover {
+  background: var(--bg-active);
+  color: var(--text-primary);
+}
+
+.tab-close:active {
+  transform: scale(0.9);
+}
+
+/* ---------- Trailing controls ---------- */
+.tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0 10px 0 2px;
+  align-self: center;
+}
+
+.chrome-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: default;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s var(--ease-out), color 0.15s var(--ease-out),
+    transform 0.12s var(--ease-out);
+}
+
+.chrome-btn:hover {
   background: var(--bg-hover);
   color: var(--text-primary);
 }
 
-.tab-actions {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 8px;
-  -webkit-app-region: no-drag;
+.chrome-btn:active {
+  transform: scale(0.92);
+  background: var(--bg-active);
 }
 
-.tab-add,
-.settings-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.15s ease;
-}
-
-.tab-add:hover,
-.settings-btn:hover {
-  background: var(--bg-tab-hover);
-  color: var(--text-primary);
+.tab-add {
+  align-self: center;
+  margin-left: 2px;
 }

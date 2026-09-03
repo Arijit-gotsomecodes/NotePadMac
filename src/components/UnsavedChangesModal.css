@@ -1,73 +1,98 @@
+/* macOS alert sheet. Previously referenced --editor-bg / --text-color, which
+   no design token ever defined, so this dialog rendered unstyled. */
+
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    inset: 0;
+    z-index: 3000;
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
+    background: rgba(0, 0, 0, 0.28);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    animation: modalFade 0.15s var(--ease-out);
+}
+
+@keyframes modalFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
 }
 
 .modal-content {
-    background-color: var(--editor-bg);
+    width: 320px;
+    max-width: 88%;
+    padding: 22px 22px 18px;
+    text-align: center;
+    color: var(--text-primary);
+    background: var(--mat-popover);
+    -webkit-backdrop-filter: var(--blur-popover);
+    backdrop-filter: var(--blur-popover);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 20px;
-    width: 400px;
-    max-width: 90%;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    color: var(--text-color);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg), var(--edge-highlight);
+    animation: modalPop 0.22s var(--ease-spring);
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
 }
 
 .modal-header h3 {
-    margin: 0 0 15px 0;
-    font-size: 1.2rem;
+    margin: 0 0 6px;
+    font-size: 14px;
     font-weight: 600;
+    letter-spacing: -0.01em;
 }
 
 .modal-body p {
-    margin: 0 0 20px 0;
-    font-size: 1rem;
-    color: var(--text-color);
+    margin: 0 0 18px;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--text-secondary);
 }
 
 .modal-footer {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
+    flex-direction: column;
+    gap: 7px;
 }
 
 .modal-footer button {
-    padding: 8px 16px;
-    border-radius: 4px;
+    width: 100%;
+    padding: 7px 16px;
+    border-radius: var(--radius-md);
     border: none;
-    cursor: pointer;
-    font-size: 0.9rem;
+    cursor: default;
+    font-size: 12.5px;
     font-weight: 500;
-    transition: background-color 0.2s;
+    transition: filter 0.15s var(--ease-out), background 0.15s var(--ease-out),
+        transform 0.12s var(--ease-out);
 }
 
-.btn-secondary {
-    background-color: var(--header-bg);
-    color: var(--text-color);
-    border: 1px solid var(--border-color) !important;
+.modal-footer button:active {
+    transform: scale(0.98);
 }
 
-.btn-secondary:hover {
-    background-color: var(--hover-bg);
-}
-
+/* Primary first — macOS puts the default action on top in a stacked sheet. */
 .btn-primary {
-    background-color: #007bff;
-    /* Fallback */
-    background-color: var(--active-tab-bg);
-    /* Use theme color if appropriate, or keep explicit blue */
-    color: white;
+    order: -1;
+    background: var(--accent-color);
+    color: var(--accent-text);
+    box-shadow: 0 1px 3px var(--accent-glow);
 }
 
 .btn-primary:hover {
-    filter: brightness(1.1);
+    filter: brightness(1.08);
+}
+
+.btn-secondary {
+    background: var(--mat-control);
+    color: var(--text-primary);
+    box-shadow: var(--edge-ring);
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
 }

@@ -1,15 +1,22 @@
 name: Release
+
+# Tag-driven, not branch-driven. `npm run release <version>` creates and pushes
+# the tag; a plain push to main no longer tries to cut a release with a version
+# that already exists. It also means the README/cask commit this workflow makes
+# at the end cannot retrigger the workflow.
 on:
   push:
-    branches:
-      - main
-    paths-ignore:
-      - "README.md"
-      - "Casks/**"
+    tags:
+      - "app-v*"
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and release (e.g. app-v2.0.0)"
+        required: true
 
 jobs:
-  release:
+  build:
+    name: Build (${{ matrix.label }})
     permissions:
       contents: write
     strategy:
@@ -24,11 +31,12 @@ jobs:
             label: macOS-x64
 
     runs-on: ${{ matrix.platform }}
-    name: Build (${{ matrix.label }})
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -49,17 +57,121 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build and Create Release
+      # Stays a draft on purpose: both architectures upload into the same
+      # release, and publishing here would put a half-populated release live as
+      # soon as the first job finished. The publish job below flips it.
+      - name: Build and upload artifacts
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tagName: app-v__VERSION__
-          releaseName: "App v__VERSION__"
+          releaseName: "NotepadMac v__VERSION__"
           releaseBody: |
             Download the installer for your platform:
-            - **macOS (Apple Silicon)**: `.dmg` file (aarch64)
-            - **macOS (Intel)**: `.dmg` file (x86_64)
+
+            - **macOS (Apple Silicon)** — `NotepadMac___VERSION___aarch64.dmg`
+            - **macOS (Intel)** — `NotepadMac___VERSION___x64.dmg`
+
+            First launch on Apple Silicon may need:
+            ```bash
+            xattr -cr /Applications/NotepadMac.app
+            ```
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.target }}
+
+  publish:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+      arm_url: ${{ steps.release.outputs.arm_url }}
+      intel_url: ${{ steps.release.outputs.intel_url }}
+    steps:
+      - name: Verify assets and publish
+        id: release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tag = context.payload.inputs?.tag || context.ref.replace('refs/tags/', '');
+            const version = tag.replace(/^app-v/, '');
+            const { owner, repo } = context.repo;
+
+            // getReleaseByTag does not return drafts, so the draft has to be
+            // found by listing.
+            const releases = await github.paginate(github.rest.repos.listReleases, {
+              owner, repo, per_page: 100,
+            });
+            const release = releases.find((r) => r.tag_name === tag);
+            if (!release) {
+              core.setFailed(`No release found for tag ${tag}`);
+              return;
+            }
+
+            const arm = release.assets.find((a) => a.name === `NotepadMac_${version}_aarch64.dmg`);
+            const intel = release.assets.find((a) => a.name === `NotepadMac_${version}_x64.dmg`);
+            if (!arm || !intel) {
+              const found = release.assets.map((a) => a.name).join(', ') || '(none)';
+              core.setFailed(`Expected both .dmg assets for ${version}; found: ${found}`);
+              return;
+            }
+
+            await github.rest.repos.updateRelease({
+              owner, repo, release_id: release.id, draft: false, make_latest: 'true',
+            });
+
+            core.setOutput('version', version);
+            core.setOutput('arm_url', arm.browser_download_url);
+            core.setOutput('intel_url', intel.browser_download_url);
+            core.notice(`Published ${tag} with both installers.`);
+
+  sync-links:
+    name: Sync README and cask
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v5
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "lts/*"
+
+      - name: Checksum the published installers
+        id: shasum
+        run: |
+          curl -fsSL -o arm.dmg "${{ needs.publish.outputs.arm_url }}"
+          curl -fsSL -o intel.dmg "${{ needs.publish.outputs.intel_url }}"
+          echo "arm_sha=$(sha256sum arm.dmg | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+          echo "intel_sha=$(sha256sum intel.dmg | awk '{print $1}')" >> "$GITHUB_OUTPUT"
+
+      - name: Rewrite download links and cask
+        run: |
+          node scripts/sync-release-links.js \
+            --version "${{ needs.publish.outputs.version }}" \
+            --arm-url "${{ needs.publish.outputs.arm_url }}" \
+            --intel-url "${{ needs.publish.outputs.intel_url }}" \
+            --arm-sha "${{ steps.shasum.outputs.arm_sha }}" \
+            --intel-sha "${{ steps.shasum.outputs.intel_sha }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add README.md Casks/notepadformac.rb
+          if git diff --staged --quiet; then
+            echo "Links already current; nothing to commit."
+            exit 0
+          fi
+          git commit -m "chore(release): point downloads at v${{ needs.publish.outputs.version }}"
+          git push origin main

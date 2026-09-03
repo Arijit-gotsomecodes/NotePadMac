@@ -14,6 +14,7 @@ export interface Tab {
   scrollTop: number;
   undoStack: string[];
   redoStack: string[];
+  lastSavedAt: number | null;
 }
 
 interface EditorState {
@@ -30,6 +31,7 @@ interface EditorState {
   updateScrollTop: (id: string, scrollTop: number) => void;
   setFilePath: (id: string, path: string, title: string) => void;
   setClean: (id: string) => void;
+  markSaved: (id: string, savedContent: string) => void;
   setEncoding: (id: string, encoding: string) => void;
   setLineEnding: (id: string, lineEnding: string) => void;
   getActiveTab: () => Tab | undefined;
@@ -44,10 +46,63 @@ function generateId(): string {
   return Math.random().toString(36).substring(2, 9) + Date.now().toString(36);
 }
 
-function createDefaultTab(overrides?: Partial<Tab>): Tab {
+/**
+ * Windows Notepad numbering: the first scratch tab is "Untitled", the next
+ * free slot after that is "Untitled 2", "Untitled 3", ... Numbers are reused
+ * once a tab closes, so you never drift up to "Untitled 47".
+ */
+function nextUntitledTitle(existing: Tab[]): string {
+  const taken = new Set<number>();
+  for (const tab of existing) {
+    if (tab.title === 'Untitled') {
+      taken.add(1);
+      continue;
+    }
+    const match = /^Untitled (\d+)$/.exec(tab.title);
+    if (match) taken.add(parseInt(match[1], 10));
+  }
+  let n = 1;
+  while (taken.has(n)) n += 1;
+  return n === 1 ? 'Untitled' : `Untitled ${n}`;
+}
+
+/**
+ * Sessions saved before tab numbering existed hold several tabs all called
+ * "Untitled". Hand the duplicates the next free slot on load so a restored
+ * window doesn't come back with eight identical tabs.
+ */
+function renumberUntitled(tabs: Tab[]): Tab[] {
+  const claimed = new Set<number>();
+  const numberOf = (title: string): number | null => {
+    if (title === 'Untitled') return 1;
+    const match = /^Untitled (\d+)$/.exec(title);
+    return match ? parseInt(match[1], 10) : null;
+  };
+
+  // First pass: every untitled tab keeps its number if nothing else took it.
+  const claims = tabs.map((tab) => {
+    if (tab.filePath) return null;
+    const n = numberOf(tab.title);
+    if (n === null || claimed.has(n)) return null;
+    claimed.add(n);
+    return n;
+  });
+
+  // Second pass: the leftovers fill the gaps.
+  return tabs.map((tab, i) => {
+    if (tab.filePath || claims[i] !== null) return tab;
+    if (numberOf(tab.title) === null) return tab;
+    let n = 1;
+    while (claimed.has(n)) n += 1;
+    claimed.add(n);
+    return { ...tab, title: n === 1 ? 'Untitled' : `Untitled ${n}` };
+  });
+}
+
+function createDefaultTab(overrides?: Partial<Tab>, existing: Tab[] = []): Tab {
   return {
     id: generateId(),
-    title: 'Untitled',
+    title: nextUntitledTitle(existing),
     filePath: null,
     content: '',
     isDirty: false,
@@ -58,6 +113,7 @@ function createDefaultTab(overrides?: Partial<Tab>): Tab {
     scrollTop: 0,
     undoStack: [],
     redoStack: [],
+    lastSavedAt: null,
     ...overrides,
   };
 }
@@ -68,7 +124,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   sessionSaveTimer: null,
 
   addTab: (overrides) => {
-    const newTab = createDefaultTab(overrides);
+    const newTab = createDefaultTab(overrides, get().tabs);
     set((state) => ({
       tabs: [...state.tabs, newTab],
       activeTabId: newTab.id,
@@ -193,7 +249,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setClean: (id) => {
     set((state) => ({
       tabs: state.tabs.map((t) =>
-        t.id === id ? { ...t, isDirty: false } : t
+        t.id === id ? { ...t, isDirty: false, lastSavedAt: Date.now() } : t
+      ),
+    }));
+    get().saveSession();
+  },
+
+  /**
+   * Clear the dirty flag only if the buffer still matches what we wrote.
+   * Keystrokes that landed mid-write keep the tab dirty for the next pass.
+   */
+  markSaved: (id, savedContent) => {
+    set((state) => ({
+      tabs: state.tabs.map((t) =>
+        t.id === id
+          ? { ...t, isDirty: t.content !== savedContent, lastSavedAt: Date.now() }
+          : t
       ),
     }));
     get().saveSession();
@@ -274,7 +345,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       if (session && session.tabs.length > 0) {
         set({
-          tabs: session.tabs.map((t) => ({
+          tabs: renumberUntitled(session.tabs.map((t) => ({
             id: t.id,
             title: t.title,
             filePath: t.file_path,
@@ -287,7 +358,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             scrollTop: t.scroll_top,
             undoStack: [],
             redoStack: [],
-          })),
+            lastSavedAt: null,
+          }))),
           activeTabId: session.active_tab_id,
         });
       } else {

@@ -1,11 +1,12 @@
 .menu-bar {
     display: flex;
     align-items: center;
-    background: var(--bg-menu);
-    height: 32px;
-    min-height: 32px;
-    padding: 0 6px;
+    height: 34px;
+    min-height: 34px;
+    padding: 0 8px;
     user-select: none;
+    background: transparent;
+    border-bottom: 1px solid var(--border-subtle);
 }
 
 .menu-container {
@@ -15,43 +16,52 @@
 .menu-trigger {
     display: flex;
     align-items: center;
-    height: 26px;
+    height: 24px;
     padding: 0 10px;
     border: none;
     background: none;
     color: var(--text-primary);
     font-size: 12.5px;
-    font-weight: 450;
-    cursor: pointer;
-    border-radius: 6px;
-    transition: all 0.15s ease;
+    font-weight: 500;
+    cursor: default;
+    border-radius: var(--radius-sm);
     letter-spacing: -0.01em;
+    transition: background 0.14s var(--ease-out), color 0.14s var(--ease-out);
 }
 
-.menu-trigger:hover,
-.menu-trigger.active {
+.menu-trigger:hover {
     background: var(--bg-hover);
 }
 
+.menu-trigger.active {
+    background: var(--accent-color);
+    color: var(--accent-text);
+}
+
+/* ---------- Dropdown: a real vibrancy popover ---------- */
 .menu-dropdown {
     position: absolute;
-    top: calc(100% + 4px);
+    top: calc(100% + 5px);
     left: 0;
-    min-width: 220px;
-    background: var(--bg-dropdown);
-    border: 1px solid var(--border-dropdown);
-    border-radius: 10px;
-    box-shadow: var(--glass-shadow-elevated);
-    padding: 4px;
+    min-width: 236px;
+    padding: 5px;
     z-index: 1000;
-    animation: menuAppear 0.15s cubic-bezier(0.2, 0, 0, 1);
+    background: var(--mat-popover);
+    -webkit-backdrop-filter: var(--blur-popover);
+    backdrop-filter: var(--blur-popover);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg), var(--edge-highlight);
+    transform-origin: top left;
+    animation: menuAppear 0.16s var(--ease-spring);
 }
 
 @keyframes menuAppear {
     from {
         opacity: 0;
-        transform: scale(0.96) translateY(-4px);
+        transform: scale(0.94) translateY(-6px);
     }
+
     to {
         opacity: 1;
         transform: scale(1) translateY(0);
@@ -61,41 +71,46 @@
 .menu-item {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
     width: 100%;
-    height: 32px;
+    height: 30px;
     padding: 0 10px;
     border: none;
     background: none;
     color: var(--text-primary);
     font-size: 12.5px;
     font-weight: 400;
-    cursor: pointer;
-    border-radius: 6px;
+    cursor: default;
+    border-radius: var(--radius-sm);
     text-align: left;
-    transition: all 0.12s ease;
+    transition: background 0.1s var(--ease-out);
 }
 
 .menu-item:hover {
-    background: var(--bg-menu-hover);
+    background: var(--accent-color);
+    color: var(--accent-text);
 }
 
 .menu-item-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 18px;
-    height: 18px;
+    width: 17px;
+    height: 17px;
     color: var(--text-secondary);
     flex-shrink: 0;
+    transition: color 0.1s var(--ease-out);
 }
 
-.menu-item:hover .menu-item-icon {
-    color: var(--text-primary);
+.menu-item:hover .menu-item-icon,
+.menu-item:hover .menu-item-shortcut,
+.menu-item:hover .menu-item-check {
+    color: var(--accent-text);
 }
 
 .menu-item-label {
     flex: 1;
+    white-space: nowrap;
 }
 
 .menu-item-check {
@@ -107,15 +122,16 @@
 }
 
 .menu-item-shortcut {
-    color: var(--text-secondary);
-    font-size: 11px;
+    color: var(--text-tertiary);
+    font-size: 11.5px;
     font-weight: 400;
     margin-left: auto;
     letter-spacing: 0.02em;
+    font-variant-numeric: tabular-nums;
 }
 
 .menu-divider {
     height: 1px;
-    margin: 4px 10px;
+    margin: 5px 8px;
     background: var(--border-color);
 }

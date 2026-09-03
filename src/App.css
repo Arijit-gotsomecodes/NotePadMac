@@ -1,107 +1,117 @@
 /* ===================================
-   Liquid Glass Design System
+   NotepadMac — Liquid Glass design system
+   Windows Notepad structure, macOS materials.
    =================================== */
 
 :root {
-  /* Light theme - Clean Windows 11 style */
-  --bg-app: #f3f3f3;
-  --bg-solid: #f3f3f3;
+  color-scheme: light;
 
-  /* Glass surfaces */
-  --glass-bg: #ffffff;
-  --glass-bg-strong: #ffffff;
-  --glass-bg-subtle: #fafafa;
-  --glass-border: rgba(0, 0, 0, 0.08);
-  --glass-border-subtle: rgba(0, 0, 0, 0.05);
-  --glass-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  --glass-shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.12);
+  /* Window ground + the tint that glass picks up */
+  --bg-app: #eceef2;
+  --tint-a: rgba(0, 122, 255, 0.16);
+  --tint-b: rgba(175, 82, 222, 0.13);
+  --tint-c: rgba(48, 209, 88, 0.10);
 
-  /* Editor */
-  --bg-editor: #ffffff;
+  /* Materials — translucent so backdrop-filter has something to chew on */
+  --mat-chrome: rgba(246, 247, 250, 0.62);
+  --mat-editor: rgba(255, 255, 255, 0.74);
+  --mat-raised: rgba(252, 252, 254, 0.78);
+  --mat-popover: rgba(250, 250, 252, 0.72);
+  --mat-control: rgba(255, 255, 255, 0.60);
 
-  /* Tab bar */
-  --bg-tab-bar: #f3f3f3;
-  --bg-tab: transparent;
-  --bg-tab-hover: rgba(0, 0, 0, 0.04);
-  --bg-tab-active: #ffffff;
+  --blur-chrome: saturate(180%) blur(30px);
+  --blur-popover: saturate(180%) blur(40px);
 
-  /* Menu - same as active tab */
-  --bg-menu: #ffffff;
-  --bg-menu-hover: rgba(0, 0, 0, 0.06);
-  --bg-dropdown: #ffffff;
-  --border-dropdown: rgba(0, 0, 0, 0.1);
+  /* Hairlines + specular edges */
+  --border-color: rgba(0, 0, 0, 0.10);
+  --border-subtle: rgba(0, 0, 0, 0.06);
+  --edge-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  --edge-ring: inset 0 0 0 0.5px rgba(0, 0, 0, 0.10);
 
-  /* Status */
-  --bg-status: #f3f3f3;
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.10), 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.08);
 
-  /* Find */
-  --bg-find: #ffffff;
+  /* Tabs */
+  --tab-active: rgba(255, 255, 255, 0.92);
+  --tab-hover: rgba(0, 0, 0, 0.045);
 
-  /* Inputs */
-  --bg-input: #ffffff;
-  --border-input: rgba(0, 0, 0, 0.1);
+  /* Type */
+  --text-primary: #14161a;
+  --text-secondary: rgba(20, 22, 26, 0.55);
+  --text-tertiary: rgba(20, 22, 26, 0.38);
 
-  /* General */
-  --bg-hover: rgba(0, 0, 0, 0.04);
-  --text-primary: #1a1a1a;
-  --text-secondary: #666666;
-  --border-color: rgba(0, 0, 0, 0.08);
-  --accent-color: #0078d4;
-  --accent-glow: rgba(0, 120, 212, 0.15);
-  --selection-bg: rgba(0, 120, 212, 0.2);
+  /* Interaction */
+  --bg-hover: rgba(0, 0, 0, 0.055);
+  --bg-active: rgba(0, 0, 0, 0.09);
+  --accent-color: #007aff;
+  --accent-text: #ffffff;
+  --accent-soft: rgba(0, 122, 255, 0.14);
+  --accent-glow: rgba(0, 122, 255, 0.28);
+  --success-color: #29a745;
+  --selection-bg: rgba(0, 122, 255, 0.22);
   --selection-text: inherit;
-  --scrollbar-thumb: rgba(0, 0, 0, 0.2);
-  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.35);
 
-  --glass-inner-shadow: none;
+  --scrollbar-thumb: rgba(0, 0, 0, 0.22);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.36);
+
+  /* Chrome metrics — the traffic-light gutter lives here */
+  --titlebar-height: 46px;
+  --traffic-gutter: 78px;
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 13px;
+  --radius-xl: 18px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 }
 
 [data-theme='dark'] {
-  --bg-app: #282830;
-  --bg-solid: #282830;
+  color-scheme: dark;
 
-  --glass-bg: rgba(255, 255, 255, 0.06);
-  --glass-bg-strong: rgba(255, 255, 255, 0.1);
-  --glass-bg-subtle: rgba(255, 255, 255, 0.03);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-border-subtle: rgba(255, 255, 255, 0.06);
-  --glass-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --glass-shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --bg-app: #16171b;
+  --tint-a: rgba(10, 132, 255, 0.20);
+  --tint-b: rgba(191, 90, 242, 0.16);
+  --tint-c: rgba(48, 209, 88, 0.10);
 
-  --bg-editor: #1e1e24;
+  --mat-chrome: rgba(34, 36, 42, 0.62);
+  --mat-editor: rgba(24, 25, 30, 0.72);
+  --mat-raised: rgba(44, 46, 54, 0.72);
+  --mat-popover: rgba(46, 48, 56, 0.68);
+  --mat-control: rgba(255, 255, 255, 0.08);
 
-  --bg-tab-bar: #282830;
-  --bg-tab: transparent;
-  --bg-tab-hover: rgba(255, 255, 255, 0.06);
-  --bg-tab-active: #1e1e24;
+  --border-color: rgba(255, 255, 255, 0.11);
+  --border-subtle: rgba(255, 255, 255, 0.07);
+  --edge-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.10);
+  --edge-ring: inset 0 0 0 0.5px rgba(255, 255, 255, 0.09);
 
-  /* Menu - same as active tab/editor */
-  --bg-menu: #1e1e24;
-  --bg-menu-hover: rgba(255, 255, 255, 0.08);
-  --bg-dropdown: #2a2a32;
-  --border-dropdown: rgba(255, 255, 255, 0.1);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.4);
 
-  --bg-status: #282830;
-  --bg-find: #2a2a32;
+  --tab-active: rgba(255, 255, 255, 0.11);
+  --tab-hover: rgba(255, 255, 255, 0.06);
 
-  --bg-input: rgba(255, 255, 255, 0.08);
-  --border-input: rgba(255, 255, 255, 0.1);
+  --text-primary: rgba(255, 255, 255, 0.94);
+  --text-secondary: rgba(255, 255, 255, 0.56);
+  --text-tertiary: rgba(255, 255, 255, 0.36);
 
-  --bg-hover: rgba(255, 255, 255, 0.06);
-  --text-primary: rgba(255, 255, 255, 0.92);
-  --text-secondary: rgba(255, 255, 255, 0.5);
-  --border-color: rgba(255, 255, 255, 0.08);
-  --accent-color: #60cdff;
-  --accent-glow: rgba(96, 205, 255, 0.15);
-  --selection-bg: rgba(96, 205, 255, 0.25);
-  --selection-text: inherit;
-  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
-  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+  --bg-hover: rgba(255, 255, 255, 0.09);
+  --bg-active: rgba(255, 255, 255, 0.14);
+  --accent-color: #0a84ff;
+  --accent-text: #ffffff;
+  --accent-soft: rgba(10, 132, 255, 0.22);
+  --accent-glow: rgba(10, 132, 255, 0.36);
+  --success-color: #32d74b;
+  --selection-bg: rgba(10, 132, 255, 0.34);
 
-  --glass-inner-shadow: none;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.18);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.3);
 }
 
-/* ========== Global Reset ========== */
+/* ========== Global reset ========== */
 *,
 *::before,
 *::after {
@@ -119,7 +129,7 @@ body,
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text',
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
     'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 13px;
   color: var(--text-primary);
@@ -128,19 +138,43 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ========== App Layout ========== */
+/* ========== App shell ========== */
 .app {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  background: var(--bg-app);
 }
 
-/* ========== Scrollbar ========== */
+/* The colour field every glass surface samples. Sits behind everything. */
+.app::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(52% 46% at 8% -4%, var(--tint-a), transparent 70%),
+    radial-gradient(46% 42% at 96% 4%, var(--tint-b), transparent 68%),
+    radial-gradient(60% 50% at 74% 108%, var(--tint-c), transparent 72%);
+  filter: blur(28px);
+}
+
+
+/* Shared material recipe */
+.glass {
+  background: var(--mat-chrome);
+  -webkit-backdrop-filter: var(--blur-chrome);
+  backdrop-filter: var(--blur-chrome);
+}
+
+/* ========== Scrollbars ========== */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 11px;
+  height: 11px;
 }
 
 ::-webkit-scrollbar-track {
@@ -150,7 +184,7 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--scrollbar-thumb);
   border-radius: 100px;
-  border: 2px solid transparent;
+  border: 3px solid transparent;
   background-clip: content-box;
 }
 
@@ -159,24 +193,75 @@ body {
   background-clip: content-box;
 }
 
-/* ========== Remove ALL blue outlines ========== */
-*:focus {
-  outline: none;
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
-*:focus-visible {
-  outline: none;
+/* ========== Text selection ==========
+   The chrome is chrome: only the document and form fields are selectable.
+   WKWebView ignores the unprefixed `user-select`, which is why the rules on
+   the individual bars weren't holding — the prefixed property is the one that
+   actually does the work here. */
+body {
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
 }
 
+.editor-textarea,
+input,
+textarea,
+select {
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: auto;
+}
+
+/* Stop the logo and icons being dragged out as images. */
+img,
+svg {
+  -webkit-user-drag: none;
+}
+
+/* ========== Focus / buttons ========== */
+*:focus,
+*:focus-visible,
 textarea:focus,
 input:focus,
 button:focus {
   outline: none;
 }
 
-/* ========== Button Reset ========== */
 button {
   font-family: inherit;
   outline: none;
   border: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ========== Document card ==========
+   Everything below the title bar lives on one raised glass sheet, so the
+   active tab appears to be part of the page it opens. */
+.workspace {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--mat-editor);
+  -webkit-backdrop-filter: var(--blur-chrome);
+  backdrop-filter: var(--blur-chrome);
+  border-top-left-radius: var(--radius-md);
+  border-top-right-radius: var(--radius-md);
+  box-shadow: var(--edge-highlight), 0 -1px 0 var(--border-subtle);
 }

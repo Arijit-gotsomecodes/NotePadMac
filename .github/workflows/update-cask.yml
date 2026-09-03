@@ -1,5 +1,9 @@
 name: Update Homebrew Cask
 
+# Note: a release published by CI via GITHUB_TOKEN raises no `release` event —
+# GitHub does not trigger workflows from GITHUB_TOKEN activity. This still fires
+# when a release is published by hand, and release.yml syncs the links itself,
+# so both paths are covered. Run this manually to re-sync an existing release.
 on:
     release:
         types: [published]
@@ -40,7 +44,10 @@ jobs:
               uses: actions/github-script@v7
               with:
                   script: |
-                      const inputTag = core.getInput('tag');
+                      // workflow_dispatch inputs arrive on the payload; core.getInput
+                      // reads the action's own inputs and is always empty here,
+                      // which made the tag box silently fall through to "latest".
+                      const inputTag = context.payload.inputs?.tag;
                       let release = null;
 
                       if (context.eventName === 'release') {
@@ -95,26 +102,16 @@ jobs:
                   echo "intel_sha=$INTEL_SHA" >> $GITHUB_OUTPUT
                   echo "arm_sha=$ARM_SHA" >> $GITHUB_OUTPUT
 
-            - name: Update Cask Formula
+            - name: Update download links and cask
               run: |
-                  CASK_FILE="Casks/notepadformac.rb"
-                  VERSION="${{ steps.release_data.outputs.version }}"
-                  INTEL_SHA="${{ steps.shasum.outputs.intel_sha }}"
-                  ARM_SHA="${{ steps.shasum.outputs.arm_sha }}"
+                  node scripts/sync-release-links.js \
+                    --version "${{ steps.release_data.outputs.version }}" \
+                    --arm-url "${{ steps.release_data.outputs.arm_url }}" \
+                    --intel-url "${{ steps.release_data.outputs.intel_url }}" \
+                    --arm-sha "${{ steps.shasum.outputs.arm_sha }}" \
+                    --intel-sha "${{ steps.shasum.outputs.intel_sha }}"
 
-                  # Update version
-                  sed -i '' "s/version \".*\"/version \"$VERSION\"/g" $CASK_FILE
-
-                  # Update Intel SHA
-                  # We use awk to replace the first occurrence of sha256 (in the on_intel block)
-                  awk -v sha="$INTEL_SHA" '/sha256/ && ++c==1 {sub(/sha256 ".*"/, "sha256 \"" sha "\"")} 1' $CASK_FILE > tmp_cask && mv tmp_cask $CASK_FILE
-
-                  # Update ARM SHA
-                  # We use awk to replace the second occurrence of sha256 (in the on_arm block)
-                  awk -v sha="$ARM_SHA" '/sha256/ && ++c==2 {sub(/sha256 ".*"/, "sha256 \"" sha "\"")} 1' $CASK_FILE > tmp_cask && mv tmp_cask $CASK_FILE
-
-                  echo "Updated Cask with new version $VERSION and SHAs:"
-                  cat $CASK_FILE
+                  git --no-pager diff -- README.md Casks/notepadformac.rb
 
             - name: Commit and Push Changes
               run: |
@@ -135,6 +132,10 @@ jobs:
                     exit 1
                   fi
 
-                  git add Casks/notepadformac.rb
-                  git commit -m "chore(brew): update notepadformac cask to v${{ steps.release_data.outputs.version }}"
+                  git add README.md Casks/notepadformac.rb
+                  if git diff --staged --quiet; then
+                    echo "Links already current; nothing to commit."
+                    exit 0
+                  fi
+                  git commit -m "chore(release): point downloads at v${{ steps.release_data.outputs.version }}"
                   git push origin main

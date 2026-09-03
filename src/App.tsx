@@ -8,6 +8,8 @@ import { Settings } from './components/Settings';
 import { useEditorStore } from './stores/editorStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useTheme } from './hooks/useTheme';
+import { useAutoSave } from './hooks/useAutoSave';
+import { useWindowTitle } from './hooks/useWindowTitle';
 import './App.css';
 
 function App() {
@@ -15,6 +17,8 @@ function App() {
 
   useKeyboardShortcuts();
   useTheme();
+  useAutoSave();
+  useWindowTitle();
 
   useEffect(() => {
     loadSession();
@@ -23,10 +27,12 @@ function App() {
   return (
     <div className="app">
       <TabBar />
-      <MenuBar />
-      <FindReplace />
-      <Editor />
-      <StatusBar />
+      <div className="workspace">
+        <MenuBar />
+        <FindReplace />
+        <Editor />
+        <StatusBar />
+      </div>
       <Settings />
     </div>
   );
