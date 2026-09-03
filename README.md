@@ -33,9 +33,15 @@ This template should help get you started developing with Tauri, React and Types
 #### Install via Homebrew
 ```bash
 brew tap Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac.git
+brew trust --tap arijit-gotsomecodes/notepadmac---windows-notepad-for-mac
 brew install notepadformac
 xattr -cr /Applications/NotepadMac.app
 ```
+
+> **Why the `brew trust` step?** Homebrew 6 refuses to load formulae and casks
+> from third-party taps until you explicitly trust them. Without it you'll see
+> `Error: Refusing to load cask ... from untrusted tap`. Note that the tap name
+> is lowercased in the trust command — that's how Homebrew stores it.
 
 #### Install via Source
 ```bash
