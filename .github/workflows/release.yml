@@ -124,9 +124,22 @@ jobs:
               owner, repo, release_id: release.id, draft: false, make_latest: 'true',
             });
 
+            // A draft's asset URLs are of the form .../download/untagged-<hash>/...
+            // and stop resolving the moment the release is published. Re-read the
+            // release so downstream jobs get the real, tagged download URLs.
+            const { data: published } = await github.rest.repos.getReleaseByTag({
+              owner, repo, tag,
+            });
+            const armUrl = published.assets.find((a) => a.name === arm.name)?.browser_download_url;
+            const intelUrl = published.assets.find((a) => a.name === intel.name)?.browser_download_url;
+            if (!armUrl || !intelUrl) {
+              core.setFailed('Published release is missing an installer asset.');
+              return;
+            }
+
             core.setOutput('version', version);
-            core.setOutput('arm_url', arm.browser_download_url);
-            core.setOutput('intel_url', intel.browser_download_url);
+            core.setOutput('arm_url', armUrl);
+            core.setOutput('intel_url', intelUrl);
             core.notice(`Published ${tag} with both installers.`);
 
   sync-links:
