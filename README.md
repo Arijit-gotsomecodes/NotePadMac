@@ -4,6 +4,7 @@ A modern, fast, and lightweight Notepad for macOS, built with Tauri, React, and 
 
 [![Download for macOS (Apple Silicon)](https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3)-blue?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v2.0.0/NotepadMac_2.0.0_aarch64.dmg)
 [![Download for macOS (Intel)](https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v2.0.0/NotepadMac_2.0.0_x64.dmg)
+[![Total downloads](https://img.shields.io/github/downloads/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/total?style=for-the-badge&color=success&label=Downloads)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases)
 
 After downloading, remove the macOS quarantine flag:
 
@@ -128,3 +129,9 @@ We welcome contributions from the community! Whether you're fixing a bug, improv
 - **Bug Fixes**: Identifying and squashing any issues.
 
 Don't hesitate to open an issue if you have ideas or find bugs!
+
+## Good Forks
+
+Forks worth a look:
+
+- [dangphuc2470/notepad](https://github.com/dangphuc2470/notepad) - clean UI fork.
