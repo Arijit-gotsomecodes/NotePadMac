@@ -5,6 +5,12 @@ A modern, fast, and lightweight Notepad for macOS, built with Tauri, React, and 
 [![Download for macOS (Apple Silicon)](https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3)-blue?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v2.0.0/NotepadMac_2.0.0_aarch64.dmg)
 [![Download for macOS (Intel)](https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v2.0.0/NotepadMac_2.0.0_x64.dmg)
 
+After downloading, remove the macOS quarantine flag:
+
+```bash
+xattr -cr /Applications/NotepadMac.app
+```
+
 [Notice] Some apple silion laptop might face issue while first opeaning the app see Troubleshooting Section for fix, Hombrew is Kinda bit iffy, plz download using the above bottons, or from releases. Plz I need a maintainer 🥲
 
 ## Features
@@ -16,11 +22,11 @@ A modern, fast, and lightweight Notepad for macOS, built with Tauri, React, and 
 
 ## Screenshots
 
-Liquid-glass chrome, tabs in the title bar, and a full light and dark theme.
+Dark and light theme, side by side.
 
 ![NotepadMac in light and dark mode](assets/V2/1-light-and-dark.png)
 
-**Auto-save** — tabs that already have a file are written to disk as you stop typing, with the state shown in the status bar.
+**Auto-save**: tabs that already have a file are written to disk as you stop typing, with the state shown in the status bar.
 
 ![Auto-save state in the status bar](assets/V2/2-auto-save.png)
 
@@ -61,7 +67,7 @@ xattr -cr /Applications/NotepadMac.app
 > **Why the `brew trust` step?** Homebrew 6 refuses to load formulae and casks
 > from third-party taps until you explicitly trust them. Without it you'll see
 > `Error: Refusing to load cask ... from untrusted tap`. Note that the tap name
-> is lowercased in the trust command — that's how Homebrew stores it.
+> is lowercased in the trust command, that's how Homebrew stores it.
 
 #### Install via Source
 ```bash
