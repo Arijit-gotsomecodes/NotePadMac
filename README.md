@@ -5,6 +5,7 @@ A modern, fast, and lightweight Notepad for macOS, built with Tauri, React, and 
 [![Download for macOS (Apple Silicon)](https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3)-blue?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v2.0.1/NotepadMac_2.0.1_aarch64.dmg)
 [![Download for macOS (Intel)](https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases/download/app-v2.0.1/NotepadMac_2.0.1_x64.dmg)
 [![Total downloads](https://img.shields.io/github/downloads/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/total?style=for-the-badge&color=success&label=Downloads)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases)
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-ffdd00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/arijitgotsomecode)
 
 After downloading, remove the macOS quarantine flag:
 
