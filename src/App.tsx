@@ -10,6 +10,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useTheme } from './hooks/useTheme';
 import { useAutoSave } from './hooks/useAutoSave';
 import { useWindowTitle } from './hooks/useWindowTitle';
+import { useFileOpenEvents } from './hooks/useFileOpenEvents';
 import './App.css';
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
   useTheme();
   useAutoSave();
   useWindowTitle();
+  useFileOpenEvents();
 
   useEffect(() => {
     loadSession();

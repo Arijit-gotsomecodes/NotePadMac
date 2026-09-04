@@ -6,6 +6,33 @@ import { open, save } from '@tauri-apps/plugin-dialog';
 export const useFileOperations = () => {
     const editorStore = useEditorStore();
 
+    /**
+     * Reads a path and shows it in a tab. Deliberately reads the store through
+     * getState so this stays referentially stable: the file-open listener keys
+     * an effect off it, and subscribing to the store here would re-register
+     * that listener on every keystroke.
+     */
+    const openPath = useCallback(async (path: string) => {
+        try {
+            const result = await invoke<{ content: string; encoding: string; line_ending: string }>(
+                'read_file',
+                { path }
+            );
+            const fileName = path.split('/').pop() || path.split('\\').pop() || 'Untitled';
+            useEditorStore.getState().openFileInTab({
+                title: fileName,
+                filePath: path,
+                content: result.content,
+                encoding: result.encoding,
+                lineEnding: result.line_ending,
+            });
+            return true;
+        } catch (err) {
+            console.error('Failed to open file:', err);
+            return false;
+        }
+    }, []);
+
     const handleOpen = useCallback(async () => {
         try {
             const selected = await open({
@@ -16,22 +43,12 @@ export const useFileOperations = () => {
                 ],
             });
             if (selected) {
-                const path = typeof selected === 'string' ? selected : selected;
-                const result = await invoke<{ content: string; encoding: string; line_ending: string }>('read_file', { path });
-                const fileName = path.split('/').pop() || path.split('\\').pop() || 'Untitled';
-                editorStore.addTab({
-                    title: fileName,
-                    filePath: path,
-                    content: result.content,
-                    encoding: result.encoding,
-                    lineEnding: result.line_ending,
-                    isDirty: false,
-                });
+                await openPath(typeof selected === 'string' ? selected : selected);
             }
         } catch (err) {
             console.error('Failed to open file:', err);
         }
-    }, [editorStore]);
+    }, [openPath]);
 
     const handleSaveAs = useCallback(async (tabId?: string) => {
         const tab = tabId ? editorStore.tabs.find(t => t.id === tabId) : editorStore.getActiveTab();
@@ -88,6 +105,7 @@ export const useFileOperations = () => {
     }, [editorStore, handleSaveAs]);
 
     return {
+        openPath,
         handleOpen,
         handleSave,
         handleSaveAs

@@ -23,11 +23,13 @@
         "trafficLightPosition": {
           "x": 19,
           "y": 23
-        }
+        },
+        "acceptFirstMouse": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; connect-src 'self' ipc: http://ipc.localhost",
+      "devCsp": "default-src 'self'; img-src 'self' data: asset: http://asset.localhost; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; connect-src 'self' ipc: http://ipc.localhost ws://localhost:1420 http://localhost:1420"
     }
   },
   "bundle": {
@@ -39,6 +41,44 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
+    ],
+    "category": "Productivity",
+    "shortDescription": "Windows 11 Notepad for macOS",
+    "fileAssociations": [
+      {
+        "ext": [
+          "txt",
+          "text",
+          "log",
+          "md",
+          "markdown",
+          "json",
+          "csv",
+          "ini",
+          "yaml",
+          "yml",
+          "xml",
+          "toml",
+          "conf",
+          "cfg",
+          "sh",
+          "bat",
+          "py",
+          "js",
+          "ts",
+          "rs",
+          "cpp",
+          "c",
+          "h",
+          "html",
+          "css",
+          "sql"
+        ],
+        "name": "Plain Text Document",
+        "description": "Plain Text Document",
+        "role": "Editor",
+        "mimeType": "text/plain"
+      }
     ]
   }
 }

@@ -11,32 +11,6 @@
     "core:window:allow-set-title",
     "opener:default",
     "dialog:default",
-    "fs:default",
-    "store:default",
-    "window-state:default",
-    {
-      "identifier": "fs:allow-read-text-file",
-      "allow": [
-        {
-          "path": "**"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-write-text-file",
-      "allow": [
-        {
-          "path": "**"
-        }
-      ]
-    },
-    {
-      "identifier": "fs:allow-exists",
-      "allow": [
-        {
-          "path": "**"
-        }
-      ]
-    }
+    "window-state:default"
   ]
 }

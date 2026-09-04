@@ -16,6 +16,7 @@
   --mat-chrome: rgba(246, 247, 250, 0.62);
   --mat-editor: rgba(255, 255, 255, 0.74);
   --mat-raised: rgba(252, 252, 254, 0.78);
+  --mat-menubar: rgba(214, 221, 233, 0.95);
   --mat-popover: rgba(250, 250, 252, 0.72);
   --mat-control: rgba(255, 255, 255, 0.60);
 
@@ -79,6 +80,7 @@
   --mat-chrome: rgba(34, 36, 42, 0.62);
   --mat-editor: rgba(24, 25, 30, 0.72);
   --mat-raised: rgba(44, 46, 54, 0.72);
+  --mat-menubar: rgba(15, 16, 20, 0.82);
   --mat-popover: rgba(46, 48, 56, 0.68);
   --mat-control: rgba(255, 255, 255, 0.08);
 
@@ -263,5 +265,7 @@ button {
   backdrop-filter: var(--blur-chrome);
   border-top-left-radius: var(--radius-md);
   border-top-right-radius: var(--radius-md);
-  box-shadow: var(--edge-highlight), 0 -1px 0 var(--border-subtle);
+  /* No top edge at all: --edge-highlight was painting a bright 1px line
+     directly above the menu bar. The active tab merges straight in. */
+  box-shadow: none;
 }

@@ -21,6 +21,8 @@ interface EditorState {
   tabs: Tab[];
   activeTabId: string;
   sessionSaveTimer: ReturnType<typeof setTimeout> | null;
+  /** Most-recently-closed first, capped. Drives Cmd+Shift+T. */
+  closedTabs: Tab[];
 
   // Actions
   addTab: (tab?: Partial<Tab>) => void;
@@ -37,6 +39,15 @@ interface EditorState {
   getActiveTab: () => Tab | undefined;
   saveSession: () => void;
   loadSession: () => Promise<void>;
+  reopenClosedTab: () => void;
+  reorderTabs: (fromIndex: number, toIndex: number) => void;
+  openFileInTab: (file: {
+    title: string;
+    filePath: string;
+    content: string;
+    encoding: string;
+    lineEnding: string;
+  }) => void;
   undo: (id: string) => void;
   redo: (id: string) => void;
   pushUndo: (id: string, content: string) => void;
@@ -122,6 +133,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   tabs: [createDefaultTab()],
   activeTabId: '',
   sessionSaveTimer: null,
+  closedTabs: [],
 
   addTab: (overrides) => {
     const newTab = createDefaultTab(overrides, get().tabs);
@@ -137,7 +149,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const idx = state.tabs.findIndex((t) => t.id === id);
     if (idx === -1) return;
 
+    const closed = state.tabs[idx];
     const newTabs = state.tabs.filter((t) => t.id !== id);
+
+    // Worth reopening only if there was something in it. An untouched scratch
+    // tab would just be noise in the history.
+    if (closed.filePath || closed.content.length > 0) {
+      set({ closedTabs: [closed, ...state.closedTabs].slice(0, 10) });
+    }
 
     if (newTabs.length === 0) {
       // Always keep at least one tab
@@ -181,6 +200,55 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           : t
       ),
     }));
+  },
+
+  reopenClosedTab: () => {
+    const [restored, ...rest] = get().closedTabs;
+    if (!restored) return;
+    // A fresh id, so reopening the same tab twice doesn't collide.
+    const tab: Tab = { ...restored, id: generateId(), undoStack: [], redoStack: [] };
+    set((state) => ({
+      tabs: [...state.tabs, tab],
+      activeTabId: tab.id,
+      closedTabs: rest,
+    }));
+    get().saveSession();
+  },
+
+  reorderTabs: (fromIndex, toIndex) => {
+    set((state) => {
+      const { length } = state.tabs;
+      if (
+        fromIndex === toIndex ||
+        fromIndex < 0 || fromIndex >= length ||
+        toIndex < 0 || toIndex >= length
+      ) {
+        return state;
+      }
+      const tabs = [...state.tabs];
+      const [moved] = tabs.splice(fromIndex, 1);
+      tabs.splice(toIndex, 0, moved);
+      return { tabs };
+    });
+    get().saveSession();
+  },
+
+  /** Opening a file already on screen focuses it instead of duplicating it. */
+  openFileInTab: (file) => {
+    const existing = get().tabs.find((t) => t.filePath === file.filePath);
+    if (existing) {
+      set({ activeTabId: existing.id });
+      get().saveSession();
+      return;
+    }
+    get().addTab({
+      title: file.title,
+      filePath: file.filePath,
+      content: file.content,
+      encoding: file.encoding,
+      lineEnding: file.lineEnding,
+      isDirty: false,
+    });
   },
 
   undo: (id) => {

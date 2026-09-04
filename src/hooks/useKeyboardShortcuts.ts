@@ -34,10 +34,30 @@ export const useKeyboardShortcuts = () => {
                 return;
             }
 
+            // Cmd+1..8 jump to that tab, Cmd+9 to the last one (macOS standard).
+            if (/^[1-9]$/.test(e.key)) {
+                e.preventDefault();
+                const { tabs } = editorStore;
+                if (tabs.length === 0) return;
+                const digit = parseInt(e.key, 10);
+                const target = digit === 9 ? tabs[tabs.length - 1] : tabs[digit - 1];
+                if (target) editorStore.setActiveTab(target.id);
+                return;
+            }
+
             switch (e.key.toLowerCase()) {
                 case 'n':
                     e.preventDefault();
                     editorStore.addTab();
+                    break;
+
+                case 't':
+                    e.preventDefault();
+                    if (isShift) {
+                        editorStore.reopenClosedTab();
+                    } else {
+                        editorStore.addTab();
+                    }
                     break;
 
                 case 'o':

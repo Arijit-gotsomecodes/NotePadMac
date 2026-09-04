@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { create } from 'zustand';
 import { invoke } from '@tauri-apps/api/core';
 import { useEditorStore } from '../stores/editorStore';
@@ -31,6 +31,41 @@ export const useAutoSave = () => {
     // Tabs with a write currently in flight, so we never double-write one.
     const inFlight = useRef<Set<string>>(new Set());
 
+    /** Writes every dirty file-backed tab. Shared by the debounce and by blur. */
+    const saveDueTabs = useCallback(async () => {
+        // Read from the store rather than closing over `tabs`: by the time this
+        // runs the debounce window may have moved on.
+        const current = useEditorStore.getState().tabs;
+        const due = current.filter(
+            (t) => t.filePath && t.isDirty && !inFlight.current.has(t.id)
+        );
+        if (due.length === 0) return;
+
+        setStatus('saving');
+        let failed = false;
+
+        for (const tab of due) {
+            inFlight.current.add(tab.id);
+            const snapshot = tab.content;
+            try {
+                await invoke('write_file', {
+                    path: tab.filePath,
+                    content: snapshot,
+                    encoding: tab.encoding,
+                    lineEnding: tab.lineEnding,
+                });
+                markSaved(tab.id, snapshot);
+            } catch (err) {
+                failed = true;
+                console.error('Auto-save failed:', err);
+            } finally {
+                inFlight.current.delete(tab.id);
+            }
+        }
+
+        setStatus(failed ? 'error' : 'saved');
+    }, [markSaved, setStatus]);
+
     const pending = tabs.filter((t) => t.filePath && t.isDirty && !inFlight.current.has(t.id));
 
     useEffect(() => {
@@ -41,43 +76,22 @@ export const useAutoSave = () => {
         }
 
         setStatus('pending');
-        const timer = setTimeout(async () => {
-            // Re-read from the store: the debounce window may have moved on.
-            const current = useEditorStore.getState().tabs;
-            const due = current.filter(
-                (t) => t.filePath && t.isDirty && !inFlight.current.has(t.id)
-            );
-            if (due.length === 0) return;
-
-            setStatus('saving');
-            let failed = false;
-
-            for (const tab of due) {
-                inFlight.current.add(tab.id);
-                const snapshot = tab.content;
-                try {
-                    await invoke('write_file', {
-                        path: tab.filePath,
-                        content: snapshot,
-                        encoding: tab.encoding,
-                        lineEnding: tab.lineEnding,
-                    });
-                    markSaved(tab.id, snapshot);
-                } catch (err) {
-                    failed = true;
-                    console.error('Auto-save failed:', err);
-                } finally {
-                    inFlight.current.delete(tab.id);
-                }
-            }
-
-            setStatus(failed ? 'error' : 'saved');
-        }, autoSaveDelay);
-
+        const timer = setTimeout(saveDueTabs, autoSaveDelay);
         return () => clearTimeout(timer);
         // `pending` is derived from `tabs`, which changes on every keystroke —
         // that is exactly what makes this debounce.
-    }, [tabs, autoSave, autoSaveDelay, markSaved, setStatus]);
+    }, [tabs, autoSave, autoSaveDelay, saveDueTabs, setStatus]);
+
+    // Switching away from the app shouldn't leave edits sitting in the debounce
+    // window. Flush immediately instead of waiting it out. (From PR #14.)
+    useEffect(() => {
+        const flush = () => {
+            if (!useSettingsStore.getState().autoSave) return;
+            void saveDueTabs();
+        };
+        window.addEventListener('blur', flush);
+        return () => window.removeEventListener('blur', flush);
+    }, [saveDueTabs]);
 
     // Drop the "Saved" badge back to neutral after a beat.
     useEffect(() => {

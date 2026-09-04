@@ -5,8 +5,9 @@
     min-height: 34px;
     padding: 0 8px;
     user-select: none;
-    background: transparent;
-    border-bottom: 1px solid var(--border-subtle);
+    /* A darker band than the page, so the menu row stands out as chrome. No
+       border is needed: the change in shade does the separating. */
+    background: var(--mat-menubar);
 }
 
 .menu-container {

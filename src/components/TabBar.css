@@ -98,6 +98,7 @@
 }
 
 .tab-list {
+  position: relative;
   display: flex;
   align-items: flex-end;
   gap: 2px;
@@ -120,8 +121,8 @@
   gap: 6px;
   flex-shrink: 0;
   height: 100%;
-  min-width: 108px;
-  max-width: 190px;
+  min-width: 132px;
+  max-width: 216px;
   padding: 0 8px 0 12px;
   cursor: default;
   background: transparent;
@@ -129,14 +130,45 @@
   transition: background 0.18s var(--ease-out), color 0.18s var(--ease-out);
 }
 
+/* The dragged tab lifts off the strip and follows the pointer. No transition on
+   transform: it is driven directly from pointermove, and easing it would lag
+   the cursor. */
+.tab.is-dragging {
+  z-index: 10;
+  opacity: 0.95;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.22), var(--edge-highlight);
+  cursor: grabbing;
+}
+
+/* The corner cut-outs belong to a tab sitting in the strip, not a floating one. */
+.tab.is-dragging::before,
+.tab.is-dragging::after {
+  opacity: 0;
+}
+
+/* Snap line: where the tab will land if you let go now. Positioned from the
+   strip's own content box, so it stays put when the strip is scrolled. */
+.tab-drop-line {
+  position: absolute;
+  top: 8px;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  border-radius: 2px;
+  background: var(--accent-color);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+  pointer-events: none;
+  z-index: 5;
+}
+
 .tab:hover:not(.active) {
   background: var(--tab-hover);
 }
 
-/* Active tab is the same material as the document card, so it reads as
-   physically continuous with the page below it. */
+/* Active tab is the same material as the menu bar directly beneath it, so the
+   tab and the chrome band read as one continuous surface. */
 .tab.active {
-  background: var(--mat-editor);
+  background: var(--mat-menubar);
   -webkit-backdrop-filter: var(--blur-chrome);
   backdrop-filter: var(--blur-chrome);
   box-shadow: var(--edge-highlight);
@@ -151,7 +183,7 @@
   bottom: 0;
   width: var(--radius-md);
   height: var(--radius-md);
-  background: var(--mat-editor);
+  background: var(--mat-menubar);
   pointer-events: none;
 }
 
