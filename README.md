@@ -136,3 +136,12 @@ Don't hesitate to open an issue if you have ideas or find bugs!
 Forks worth a look:
 
 - [dangphuc2470/notepad](https://github.com/dangphuc2470/notepad) - clean UI fork.
+
+## Security
+
+Found a security problem? See [SECURITY.md](SECURITY.md). Please don't open a
+public issue for it.
+
+## License
+
+[MIT](LICENSE) - do what you like with it, just keep the copyright notice.

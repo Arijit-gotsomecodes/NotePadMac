@@ -2,6 +2,7 @@
   "name": "notepadmac",
   "private": true,
   "version": "2.0.2",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "vite",
