@@ -2,11 +2,13 @@ import { useEffect } from 'react';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useFileOperations } from './useFileOperations';
+import { usePrint } from './usePrint';
 
 export const useKeyboardShortcuts = () => {
     const editorStore = useEditorStore();
     const settingsStore = useSettingsStore();
     const { handleOpen, handleSave, handleSaveAs } = useFileOperations();
+    const print = usePrint();
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -63,6 +65,11 @@ export const useKeyboardShortcuts = () => {
                 case 'o':
                     e.preventDefault();
                     handleOpen();
+                    break;
+
+                case 'p':
+                    e.preventDefault();
+                    void print();
                     break;
 
                 case 's':
@@ -149,5 +156,5 @@ export const useKeyboardShortcuts = () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('wheel', handleWheel);
         };
-    }, [handleOpen, handleSave, handleSaveAs]);
+    }, [handleOpen, handleSave, handleSaveAs, print]);
 };

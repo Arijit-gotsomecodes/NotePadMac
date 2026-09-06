@@ -53,7 +53,7 @@ export const useSettingsStore = create<SettingsState>()(
             resetZoom: () => set({ zoom: 100 }),
             toggleStatusBar: () => set((s) => ({ showStatusBar: !s.showStatusBar })),
             setFontFamily: (fontFamily) => set({ fontFamily }),
-            setFontSize: (fontSize) => set({ fontSize: Math.max(8, Math.min(72, fontSize)) }),
+            setFontSize: (fontSize) => set({ fontSize: Math.max(8, Math.min(300, fontSize)) }),
             toggleAutoSave: () => set((s) => ({ autoSave: !s.autoSave })),
             setAutoSaveDelay: (autoSaveDelay) =>
                 set({ autoSaveDelay: Math.max(200, Math.min(10000, autoSaveDelay)) }),

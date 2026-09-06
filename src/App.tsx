@@ -5,6 +5,8 @@ import { Editor } from './components/Editor';
 import { FindReplace } from './components/FindReplace';
 import { StatusBar } from './components/StatusBar';
 import { Settings } from './components/Settings';
+import { PrintDocument } from './components/PrintDocument';
+import { PrintOptionsModal } from './components/PrintOptionsModal';
 import { useEditorStore } from './stores/editorStore';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { useTheme } from './hooks/useTheme';
@@ -27,16 +29,20 @@ function App() {
   }, [loadSession]);
 
   return (
-    <div className="app">
-      <TabBar />
-      <div className="workspace">
-        <MenuBar />
-        <FindReplace />
-        <Editor />
-        <StatusBar />
+    <>
+      <div className="app">
+        <TabBar />
+        <div className="workspace">
+          <MenuBar />
+          <FindReplace />
+          <Editor />
+          <StatusBar />
+        </div>
+        <Settings />
+        <PrintOptionsModal />
       </div>
-      <Settings />
-    </div>
+      <PrintDocument />
+    </>
   );
 }
 

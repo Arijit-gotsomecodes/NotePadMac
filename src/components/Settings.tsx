@@ -1,5 +1,8 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { useSettingsStore } from '../stores/settingsStore';
+import { useSystemFonts, BUILTIN_FONTS } from '../hooks/useSystemFonts';
+import { FontPicker, type FontOption } from './FontPicker';
+import logoUrl from '../assets/logo.svg';
 import './Settings.css';
 
 // Icons
@@ -19,6 +22,14 @@ const IconSaveClock = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15.2 3a2 2 0 0 1 1.4.6l3.8 3.8a2 2 0 0 1 .6 1.4V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z" /><path d="M12 11v3l2 1" /><circle cx="12" cy="14" r="4" /></svg>
 );
 
+const IconClock = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15.5 14" /></svg>
+);
+
+const IconCoffee = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 2v2" /><path d="M14 2v2" /><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h12z" /><path d="M17 10h1a3 3 0 0 1 0 6h-1" /><path d="M6 2v2" /></svg>
+);
+
 const IconGithub = () => (
     <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" /></svg>
 );
@@ -32,6 +43,20 @@ export const Settings: React.FC = () => {
         autoSave, toggleAutoSave, autoSaveDelay, setAutoSaveDelay
     } = useSettingsStore();
 
+    const systemFonts = useSystemFonts();
+    // Kept as text while typing: committing every keystroke would clamp "1" to
+    // the minimum before you finish typing "16".
+    const [sizeDraft, setSizeDraft] = useState(String(fontSize));
+    useEffect(() => setSizeDraft(String(fontSize)), [fontSize]);
+    const fontOptions: FontOption[] = [
+        ...BUILTIN_FONTS.map((f) => ({ ...f, group: 'Default' })),
+        // Quoted: family names contain spaces.
+        ...systemFonts.map((family) => ({
+            label: family,
+            value: `"${family}"`,
+            group: 'Installed',
+        })),
+    ];
     const overlayRef = useRef<HTMLDivElement>(null);
 
     const handleOverlayClick = (e: React.MouseEvent) => {
@@ -92,25 +117,47 @@ export const Settings: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="settings-controls">
-                                    <select
-                                        className="settings-select"
+                                    <FontPicker
                                         value={fontFamily}
-                                        onChange={(e) => setFontFamily(e.target.value)}
-                                    >
-                                        <option value="SF Mono, Menlo, Consolas, monospace">Monospace</option>
-                                        <option value="-apple-system, BlinkMacSystemFont, sans-serif">Sans Serif</option>
-                                        <option value="Georgia, serif">Serif</option>
-                                        <option value="Courier New, monospace">Courier New</option>
-                                    </select>
-                                    <select
-                                        className="settings-select settings-select-small"
-                                        value={fontSize}
-                                        onChange={(e) => setFontSize(parseInt(e.target.value))}
-                                    >
-                                        {[10, 11, 12, 13, 14, 16, 18, 20, 24, 28, 36, 48].map(s => (
-                                            <option key={s} value={s}>{s}px</option>
-                                        ))}
-                                    </select>
+                                        options={fontOptions}
+                                        onChange={setFontFamily}
+                                    />
+                                    <span className="settings-number">
+                                        <input
+                                            type="number"
+                                            min={8}
+                                            max={300}
+                                            step={1}
+                                            value={sizeDraft}
+                                            aria-label="Font size in pixels"
+                                            onChange={(e) => {
+                                                setSizeDraft(e.target.value);
+                                                // Commit straight away for values already in
+                                                // range, so steppers and arrow keys feel live.
+                                                const parsed = Number(e.target.value);
+                                                if (Number.isInteger(parsed) && parsed >= 8 && parsed <= 300) {
+                                                    setFontSize(parsed);
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                const parsed = Number(sizeDraft);
+                                                if (Number.isFinite(parsed) && sizeDraft.trim() !== '') {
+                                                    // setFontSize clamps to 8-300.
+                                                    setFontSize(Math.round(parsed));
+                                                } else {
+                                                    setSizeDraft(String(fontSize));
+                                                }
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') e.currentTarget.blur();
+                                                if (e.key === 'Escape') {
+                                                    setSizeDraft(String(fontSize));
+                                                    e.currentTarget.blur();
+                                                }
+                                            }}
+                                        />
+                                        <span className="settings-number-unit">px</span>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -165,10 +212,13 @@ export const Settings: React.FC = () => {
                                     <span className="settings-toggle-handle" />
                                 </button>
                             </div>
-                            <div className={`settings-row settings-subrow ${autoSave ? '' : 'is-disabled'}`}>
-                                <div className="settings-label-group">
-                                    <span className="settings-label">Save after</span>
-                                    <span className="settings-desc">How long to wait once you stop typing</span>
+                            <div className={`settings-row ${autoSave ? '' : 'is-disabled'}`}>
+                                <div className="settings-info">
+                                    <div className="settings-icon"><IconClock /></div>
+                                    <div className="settings-label-group">
+                                        <span className="settings-label">Save after</span>
+                                        <span className="settings-desc">How long to wait once you stop typing</span>
+                                    </div>
                                 </div>
                                 <select
                                     className="settings-select settings-select-small"
@@ -184,12 +234,37 @@ export const Settings: React.FC = () => {
                             </div>
                         </div>
                     </div>
+
+                    <div className="settings-group">
+                        <span className="settings-group-title">Support</span>
+                        <div className="settings-section">
+                            <div className="settings-row">
+                                <div className="settings-info">
+                                    <div className="settings-icon settings-icon-coffee"><IconCoffee /></div>
+                                    <div className="settings-label-group">
+                                        <span className="settings-label">Buy me a coffee</span>
+                                        <span className="settings-desc">
+                                            NotepadMac is free and always will be. A coffee keeps it going.
+                                        </span>
+                                    </div>
+                                </div>
+                                <a
+                                    href="https://buymeacoffee.com/arijitgotsomecode"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="settings-donate"
+                                >
+                                    Donate
+                                </a>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 {/* About / Credits */}
                 <div className="settings-footer">
                     <div className="settings-about">
-                        <img src="/logo.svg" alt="NotepadMac" className="settings-app-icon" />
+                        <img src={logoUrl} alt="NotepadMac" className="settings-app-icon" />
                         <div className="settings-app-info">
                             <span className="settings-app-name">NotepadMac</span>
                             <span className="settings-app-version">Version {__APP_VERSION__}</span>

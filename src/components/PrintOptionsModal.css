@@ -1,0 +1,185 @@
+.print-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.28);
+    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(4px);
+    animation: printFade 0.15s var(--ease-out);
+}
+
+@keyframes printFade {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.print-modal {
+    width: 380px;
+    max-width: 90vw;
+    padding: 20px 20px 16px;
+    color: var(--text-primary);
+    background: var(--mat-popover);
+    -webkit-backdrop-filter: var(--blur-popover);
+    backdrop-filter: var(--blur-popover);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg), var(--edge-highlight);
+    animation: printPop 0.22s var(--ease-spring);
+}
+
+@keyframes printPop {
+    from { opacity: 0; transform: scale(0.94); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.print-modal-header h3 {
+    margin: 0 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+.print-modal-header p {
+    margin: 0 0 14px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+
+/* ---------- Choices ---------- */
+.print-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 16px;
+}
+
+.print-choice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 10px 12px;
+    text-align: left;
+    cursor: default;
+    background: var(--mat-control);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--edge-ring);
+    color: inherit;
+    transition: background 0.15s var(--ease-out), border-color 0.15s var(--ease-out);
+}
+
+.print-choice:hover {
+    background: var(--bg-hover);
+}
+
+.print-choice.is-selected {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.print-choice-radio {
+    position: relative;
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1px solid var(--text-tertiary);
+    transition: border-color 0.15s var(--ease-out), background 0.15s var(--ease-out);
+}
+
+.print-choice.is-selected .print-choice-radio {
+    border-color: var(--accent-color);
+    background: var(--accent-color);
+}
+
+.print-choice.is-selected .print-choice-radio::after {
+    content: '';
+    position: absolute;
+    inset: 3.5px;
+    border-radius: 50%;
+    background: var(--accent-text);
+}
+
+.print-choice-text {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    flex: 1;
+    min-width: 0;
+}
+
+.print-choice-label {
+    font-size: 12.5px;
+    font-weight: 500;
+}
+
+.print-choice-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+}
+
+/* Shows exactly what will be printed at the top of the page. */
+.print-choice-sample {
+    flex-shrink: 0;
+    max-width: 130px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 2px 7px;
+    border-radius: var(--radius-sm);
+    background: var(--bg-hover);
+    color: var(--text-secondary);
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    font-size: 10.5px;
+}
+
+/* ---------- Footer ---------- */
+.print-choice-sample.is-empty {
+    font-style: italic;
+    opacity: 0.6;
+}
+
+.print-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.print-modal-footer button {
+    padding: 7px 16px;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: default;
+    font-size: 12.5px;
+    font-weight: 500;
+    transition: filter 0.15s var(--ease-out), background 0.15s var(--ease-out),
+        transform 0.12s var(--ease-out);
+}
+
+.print-modal-footer button:active {
+    transform: scale(0.98);
+}
+
+.print-modal-footer .btn-primary {
+    background: var(--accent-color);
+    color: var(--accent-text);
+    box-shadow: 0 1px 3px var(--accent-glow);
+}
+
+.print-modal-footer .btn-primary:hover {
+    filter: brightness(1.08);
+}
+
+.print-modal-footer .btn-secondary {
+    background: var(--mat-control);
+    color: var(--text-primary);
+    box-shadow: var(--edge-ring);
+}
+
+.print-modal-footer .btn-secondary:hover {
+    background: var(--bg-hover);
+}

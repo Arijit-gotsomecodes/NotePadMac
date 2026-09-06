@@ -21,3 +21,9 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 encoding_rs = "0.8"
 dirs = "5"
+
+# Already in the tree via tauri/wry, so this pulls in nothing new. Used to list
+# the fonts actually installed on the machine.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2-core-text = "0.3"
+objc2-core-foundation = "0.3"

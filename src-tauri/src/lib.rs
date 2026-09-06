@@ -1,8 +1,10 @@
 mod file_ops;
+mod fonts;
 mod models;
 mod session;
 
 use file_ops::{read_file, write_file};
+use fonts::list_system_fonts;
 use session::{load_session, save_session};
 use std::sync::Mutex;
 use tauri::Emitter;
@@ -21,6 +23,15 @@ fn take_pending_files() -> Vec<String> {
         .unwrap_or_default()
 }
 
+/// Opens the system print panel. wry drives this through NSPrintOperation, so
+/// it is the real macOS dialog with printer selection, paper size and preview.
+/// What gets printed is the rendered webview, which is why the frontend has a
+/// print-only stylesheet that hides the chrome.
+#[tauri::command]
+fn print_document(webview: tauri::Webview) -> Result<(), String> {
+    webview.print().map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app = tauri::Builder::default()
@@ -33,6 +44,8 @@ pub fn run() {
             save_session,
             load_session,
             take_pending_files,
+            print_document,
+            list_system_fonts,
         ])
         // build + run, rather than .run(), so we can observe RunEvent::Opened.
         .build(tauri::generate_context!())

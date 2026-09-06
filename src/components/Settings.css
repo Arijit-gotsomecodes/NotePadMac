@@ -98,6 +98,16 @@
     color: var(--text-secondary);
 }
 
+/* macOS pop-up button stepper. Inlined per theme because a data URI cannot
+   read CSS custom properties for its stroke colour. */
+:root {
+    --select-stepper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='16' viewBox='0 0 10 16' fill='none' stroke='%236b6b70' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.6 6.4 5 4l2.4 2.4'/%3E%3Cpath d='M2.6 9.6 5 12l2.4-2.4'/%3E%3C/svg%3E");
+}
+
+[data-theme='dark'] {
+    --select-stepper: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='16' viewBox='0 0 10 16' fill='none' stroke='%23a1a1a6' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.6 6.4 5 4l2.4 2.4'/%3E%3Cpath d='M2.6 9.6 5 12l2.4-2.4'/%3E%3C/svg%3E");
+}
+
 /* Grouped-inset list, like macOS System Settings. */
 .settings-section {
     background: var(--mat-control);
@@ -121,12 +131,6 @@
 
 .settings-row + .settings-row {
     box-shadow: inset 0 1px 0 var(--border-subtle);
-}
-
-/* A dependent option: indented under its parent row instead of carrying a
-   blank icon slot to fake the alignment. */
-.settings-subrow {
-    padding-left: 51px;
 }
 
 .settings-info {
@@ -185,6 +189,7 @@
 /* ---------- Controls ---------- */
 .settings-controls {
     display: flex;
+    align-items: center;
     gap: 8px;
     /* Never squeeze or stack the pair. If there isn't room, the whole row
        wraps and the controls drop to their own line still side by side. */
@@ -192,46 +197,45 @@
     justify-content: flex-end;
 }
 
+/* Borderless inline pop-up: the value reads as part of the row, with only the
+   stepper marking it as a control. appearance:none drops the native box, and
+   with it the native chevron, so the glyph is drawn as a background image. */
 .settings-select {
+    -webkit-appearance: none;
+    appearance: none;
     max-width: 100%;
     min-width: 0;
-    background: var(--mat-raised);
+    min-height: 26px;
+    padding: 3px 20px 3px 8px;
+    background-color: transparent;
+    background-image: var(--select-stepper);
+    background-repeat: no-repeat;
+    background-position: right 4px center;
     color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    /* min-height, not height: these are native menulist controls, so this
-       gives them a comfortable floor without fighting the UA's own sizing
-       around the chevron. */
-    min-height: 30px;
-    padding: 6px 12px;
+    border: none;
     border-radius: var(--radius-sm);
     font-size: 12.5px;
     font-weight: 500;
+    text-align: right;
+    text-align-last: right;
     text-overflow: ellipsis;
     outline: none;
     cursor: default;
-    box-shadow: var(--edge-ring);
-    transition: border-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+    box-shadow: none;
+    transition: background-color 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
 }
 
 .settings-select:hover {
-    border-color: var(--text-tertiary);
+    background-color: var(--bg-hover);
 }
 
-.settings-select:focus {
-    border-color: var(--accent-color);
+/* appearance:none also removes the native focus ring, so put one back. */
+.settings-select:focus-visible {
     box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
-/* Fixed-width because its options are all the same shape (14px, 0.8s) —
-   letting it flex just makes it jitter as the value changes. */
 .settings-select-small {
     flex: 0 0 auto;
-    width: 84px;
-}
-
-/* The font family select carries the longest values, so give it a floor. */
-.settings-controls > .settings-select:not(.settings-select-small) {
-    min-width: 150px;
 }
 
 .settings-toggle {
@@ -277,6 +281,89 @@
 .settings-row.is-disabled {
     opacity: 0.4;
     pointer-events: none;
+}
+
+/* Free-entry number field, styled to sit with the borderless controls. */
+.settings-number {
+    display: inline-flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 1px;
+    flex-shrink: 0;
+    min-height: 26px;
+    padding: 3px 8px;
+    border-radius: var(--radius-sm);
+    transition: background 0.15s var(--ease-out), box-shadow 0.15s var(--ease-out);
+}
+
+.settings-number:hover {
+    background: var(--bg-hover);
+}
+
+.settings-number:focus-within {
+    background: var(--bg-hover);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.settings-number input {
+    width: 34px;
+    padding: 0;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-align: right;
+    -moz-appearance: textfield;
+}
+
+/* The native spinners are heavy next to the borderless controls; arrow keys
+   and typing still step the value. */
+.settings-number input::-webkit-outer-spin-button,
+.settings-number input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.settings-number-unit {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* Coffee, not the usual accent blue, so the ask reads as an aside. */
+.settings-icon-coffee {
+    color: #b07d2b;
+    background: rgba(255, 197, 61, 0.18);
+}
+
+[data-theme='dark'] .settings-icon-coffee {
+    color: #ffc53d;
+    background: rgba(255, 197, 61, 0.16);
+}
+
+.settings-donate {
+    flex-shrink: 0;
+    padding: 6px 14px;
+    border-radius: var(--radius-md);
+    background: #ffdd00;
+    color: #1a1a1a;
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: var(--edge-ring);
+    transition: filter 0.15s var(--ease-out), transform 0.12s var(--ease-out);
+}
+
+.settings-donate:hover {
+    filter: brightness(1.06);
+}
+
+.settings-donate:active {
+    transform: scale(0.97);
 }
 
 /* ---------- Footer ---------- */
@@ -376,11 +463,6 @@
 
     .settings-row {
         padding: 11px 12px;
-    }
-
-    /* The icon column costs more than it earns at this width. */
-    .settings-subrow {
-        padding-left: 12px;
     }
 
     .settings-footer {

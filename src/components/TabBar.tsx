@@ -3,6 +3,7 @@ import { useFileOperations } from '../hooks/useFileOperations';
 import { UnsavedChangesModal } from './UnsavedChangesModal';
 import { useEditorStore } from '../stores/editorStore';
 import { useSettingsStore } from '../stores/settingsStore';
+import logoUrl from '../assets/logo.svg';
 import './TabBar.css';
 
 export const TabBar: React.FC = () => {
@@ -174,7 +175,7 @@ export const TabBar: React.FC = () => {
                 without the attribute stay clickable. */}
             <div className="tab-bar" data-tauri-drag-region>
                 <div className="app-branding">
-                    <img src="/logo.svg" alt="" className="app-logo" />
+                    <img src={logoUrl} alt="" className="app-logo" />
                 </div>
                 <div className="tab-list" ref={tabBarRef}>
                     {drop && <div className="tab-drop-line" style={{ left: drop.x }} />}
