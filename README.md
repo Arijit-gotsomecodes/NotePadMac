@@ -4,7 +4,7 @@ A modern, fast, and lightweight Notepad for macOS, built with Tauri, React, and 
 
 [![Download for macOS (Apple Silicon)](https://img.shields.io/badge/Download-Apple%20Silicon%20(M1%2FM2%2FM3)-blue?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotePadMac/releases/download/app-v2.0.2/NotepadMac_2.0.2_aarch64.dmg)
 [![Download for macOS (Intel)](https://img.shields.io/badge/Download-Intel%20(x86__64)-lightgrey?style=for-the-badge&logo=apple)](https://github.com/Arijit-gotsomecodes/NotePadMac/releases/download/app-v2.0.2/NotepadMac_2.0.2_x64.dmg)
-[![Total downloads](https://img.shields.io/github/downloads/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/total?style=for-the-badge&color=success&label=Downloads)](https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac/releases)
+[![Total downloads](https://img.shields.io/github/downloads/Arijit-gotsomecodes/NotePadMac/total?style=for-the-badge&color=success&label=Downloads)](https://github.com/Arijit-gotsomecodes/NotePadMac/releases)
 [![Buy Me a Coffee](https://img.shields.io/badge/Buy_Me_a_Coffee-ffdd00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/arijitgotsomecode)
 
 After downloading, remove the macOS quarantine flag:
@@ -60,8 +60,8 @@ This template should help get you started developing with Tauri, React and Types
 
 #### Install via Homebrew
 ```bash
-brew tap Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac.git
-brew trust --tap arijit-gotsomecodes/notepadmac---windows-notepad-for-mac
+brew tap Arijit-gotsomecodes/NotePadMac https://github.com/Arijit-gotsomecodes/NotePadMac.git
+brew trust --tap arijit-gotsomecodes/notepadmac
 brew install notepadformac
 xattr -cr /Applications/NotepadMac.app
 ```
@@ -105,7 +105,7 @@ We welcome contributions from the community! Whether you're fixing a bug, improv
 1.  **Fork the Repository**: Click the "Fork" button at the top right of this page.
 2.  **Clone your Fork**:
     ```bash
-    git clone https://github.com/Arijit-gotsomecodes/NotepadMac---Windows-Notepad-For-Mac.git
+    git clone https://github.com/Arijit-gotsomecodes/NotePadMac.git
     ```
 3.  **Create a Branch**:
     ```bash
