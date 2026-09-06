@@ -1,5 +1,5 @@
 cask "notepadformac" do
-  version "2.0.1"
+  version "2.0.2"
 
 on_intel do
     sha256 "06fbdcecffdf533333981a9416f6c9c1af56046ddcc0e60a88b94cc78d0924a5"
