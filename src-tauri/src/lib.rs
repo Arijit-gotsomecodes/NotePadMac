@@ -439,8 +439,8 @@ fn detach_tab(app: tauri::AppHandle, tab_json: String, x: Option<f64>, y: Option
 
     let mut builder = tauri::WebviewWindowBuilder::new(&app, &win_id, tauri::WebviewUrl::App("index.html".into()))
         .title("Notepad")
-        .inner_size(900.0, 650.0)
-        .min_inner_size(400.0, 300.0)
+        .inner_size(1000.0, 680.0)
+        .min_inner_size(450.0, 320.0)
         .title_bar_style(tauri::TitleBarStyle::Overlay)
         .hidden_title(true)
         .transparent(true)
@@ -759,7 +759,12 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_store::Builder::default().build())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(
+            tauri_plugin_window_state::Builder::default()
+                .with_state_flags(tauri_plugin_window_state::StateFlags::all() - tauri_plugin_window_state::StateFlags::VISIBLE)
+                .with_filter(|label| label == "main")
+                .build(),
+        )
         .invoke_handler(tauri::generate_handler![
             read_file,
             write_file,
